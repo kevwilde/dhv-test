@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHV Examen Oefenen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .option-btn { transition: all 0.15s; }
+  .option-btn:hover:not(.revealed) { transform: translateX(2px); }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+  }
+  .fade-in { animation: fadeIn 0.3s ease-in; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl">🤿</span>
+      <span class="font-bold text-lg text-blue-700">DHV Examen</span>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="showView('practice')" id="nav-practice"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Oefenen</button>
+      <button onclick="showView('exam-mode')" id="nav-exam-mode"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Examen</button>
+      <button onclick="showView('stats')" id="nav-stats"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Statistieken</button>
+    </div>
+  </div>
+</nav>
+
+<!-- PRACTICE VIEW -->
+<div id="view-practice" class="max-w-3xl mx-auto px-4 py-6">
+  <!-- Category filter -->
+  <div class="mb-4">
+    <div id="cat-filter-bar" class="flex gap-1.5 flex-wrap"></div>
+  </div>
+
+  <div class="flex items-center justify-between mb-4 text-sm text-gray-500">
+    <span id="session-label">Vraag 1</span>
+    <span id="session-score" class="font-medium"></span>
+  </div>
+  <div class="w-full bg-gray-200 rounded-full h-1.5 mb-6">
+    <div id="session-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width:0%"></div>
+  </div>
+
+  <div id="question-card" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 fade-in">
+    <div class="flex items-center gap-2 mb-4 flex-wrap">
+      <span id="q-exam-badge" class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full"></span>
+      <span id="q-cat-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full"></span>
+      <span id="q-stats-badge" class="text-xs text-gray-400 ml-auto"></span>
+    </div>
+    <p id="q-text" class="text-base font-semibold leading-relaxed mb-5 text-gray-900"></p>
+    <p id="q-hint" class="text-xs text-gray-400 mb-3"></p>
+    <div id="options-container" class="space-y-2.5"></div>
+    <div id="feedback" class="hidden mt-5 p-4 rounded-xl text-sm leading-relaxed"></div>
+    <div class="mt-6 flex gap-3">
+      <button id="btn-submit" onclick="submitAnswer()"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">
+        Controleer
+      </button>
+      <button id="btn-next" onclick="nextQuestion()" class="hidden
+        flex-1 bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">
+        Volgende vraag &rarr;
+      </button>
+    </div>
+  </div>
+  <p class="text-center text-xs text-gray-400 mt-4">Vragen met meer fouten verschijnen vaker &bull; antwoorden worden lokaal opgeslagen</p>
+</div>
+
+<!-- STATS VIEW -->
+<div id="view-stats" class="hidden max-w-3xl mx-auto px-4 py-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-4">
+    <h2 class="font-bold text-lg mb-1">Jouw statistieken</h2>
+    <p class="text-sm text-gray-500 mb-5">Gebaseerd op alle oefensessies opgeslagen in deze browser.</p>
+    <div class="grid grid-cols-3 gap-3 mb-6" id="stat-summary"></div>
+
+    <!-- Category chart -->
+    <div id="cat-chart" class="mb-6"></div>
+
+    <div class="flex gap-2 mb-4 flex-wrap">
+      <button onclick="filterStats('all')" id="sf-all" class="stat-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-800 text-white">Alles</button>
+      <button onclick="filterStats('wrong')" id="sf-wrong" class="stat-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Fouten</button>
+      <button onclick="filterStats('correct')" id="sf-correct" class="stat-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Goed</button>
+      <button onclick="filterStats('unseen')" id="sf-unseen" class="stat-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Niet gezien</button>
+    </div>
+    <!-- Category filter in stats -->
+    <div id="stats-cat-filter" class="flex gap-1.5 mb-4 flex-wrap"></div>
+    <div id="stats-list" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
+  </div>
+  <button onclick="clearStats()"
+    class="w-full border border-red-200 text-red-500 hover:bg-red-50 rounded-xl py-2.5 text-sm font-medium transition-colors">
+    Statistieken wissen
+  </button>
+</div>
+
+<!-- EXAM MODE VIEW -->
+<div id="view-exam-mode" class="hidden max-w-3xl mx-auto px-4 py-6">
+  <div id="exam-mode-content"></div>
+</div>
+
+<script>
+const QUESTIONS = [{"id": 0, "exam": "voorjaar 2023", "nr": 1, "q": "Buiten adem zijn tijdens een duik (hijgtoestand):", "a": "heeft te maken met de verhoogde ademarbeid onder water;", "b": "kan te wijten zijn aan een minder goede algemene conditie van de duiker;", "c": "kan te wijten zijn aan een slecht afgestelde ontspanner;", "d": "verbetert door dieper in te ademen.", "correct": ["A", "B", "C"], "cat": "Gasintoxicaties"}, {"id": 1, "exam": "voorjaar 2023", "nr": 2, "q": "Tijdens de BBQ na de duik krijgt iemand een gloeiend kooltje op de arm. Er ontstaat snel een blaar met omgevende roodheid. Wat moet je doen?", "a": "Onmiddellijk koelen met lauw, stromend water.", "b": "Onmiddellijk insmeren met Flammazine of Flamigel (zalf voor brandwonden).", "c": "De blaar openprikken vooraleer ze groter wordt.", "d": "Na de eerste behandeling een proper driehoek-verband aanbrengen.", "correct": ["A", "D"], "cat": "EHBO"}, {"id": 2, "exam": "voorjaar 2023", "nr": 3, "q": "Longen en bloedcirculatie. Welke bewering(en) is/zijn juist?", "a": "Onderdompeling in water leidt tot toename van het centrale bloedvolume. We noemen dit ook de 'bloodshift'.", "b": "De surfactant zorgt voor een goede ontplooiing van de longblaasjes.", "c": "Ademen onder water vergt veel minder inspanning dan boven water door de verhoogde zuurstofdruk (ppO2).", "d": "Door goed uit te ademen onder water vermindert de kans op hypercapnie.", "correct": ["A", "B", "D"], "cat": "Gasintoxicaties"}, {"id": 3, "exam": "voorjaar 2023", "nr": 4, "q": "Tijdens het vrijduiken kan je:", "a": "een CO2-intoxicatie oplopen;", "b": "een maskersqueeze hebben;", "c": "een longoverdruk krijgen;", "d": "onderkoeld raken.", "correct": ["B", "D"], "cat": "Vrijduik"}, {"id": 4, "exam": "voorjaar 2023", "nr": 5, "q": "Een slachtoffer dat gered wordt na een verdrinking in het zwembad, terug goed bewust is en goed ademt, moet toch steeds naar een ziekenhuis gebracht worden om volgende reden(en):", "a": "Het slachtoffer kan onverwacht opnieuw het bewustzijn verliezen.", "b": "De longen kunnen aangetast zijn door het water.", "c": "Na een verdrinking is het hart tijdelijk verzwakt.", "d": "Het bloed moet onderzocht worden op chloorvergiftiging.", "correct": ["B"], "cat": "Verdrinking"}, {"id": 5, "exam": "voorjaar 2023", "nr": 6, "q": "Op een duikcruise in tropisch water was er gisterenavond een feestje. Je buddy staat deze morgen op met hoofdpijn. De eerste duik is een wrakduik naar -35 m. Welke raad geef je?", "a": "Een pijnstiller nemen en de duik uitvoeren.", "b": "Water drinken en de duik uitvoeren.", "c": "Water drinken en de duik niet uitvoeren.", "d": "Koffie drinken en de duik uitvoeren.", "correct": ["C"], "cat": "Reisapotheek"}, {"id": 6, "exam": "voorjaar 2023", "nr": 7, "q": "De eerste hulp bij immersielongoedeem ...", "a": "Begint al in het water door de duiker in horizontale positie te brengen.", "b": "Je moet de duiker zo snel mogelijk uit het water halen.", "c": "Je moet de duiker heel geleidelijk uit het water halen.", "d": "Je moet zuurstof toedienen en de hulpdiensten activeren.", "correct": ["A", "B", "D"], "cat": "Immersie longoedeem"}, {"id": 7, "exam": "voorjaar 2023", "nr": 8, "q": "Bij een IEBT of binnenoor barotrauma:", "a": "is er bijna altijd vertigo, gehoorsdaling en tinnitus;", "b": "verdwijnen de klachten altijd na enkele dagen;", "c": "speelt de Wet van Henry een belangrijke rol;", "d": "treden de klachten meestal bij het dalen op, als je te krachtig klaart.", "correct": ["A", "D"], "cat": "Barotrauma"}, {"id": 8, "exam": "voorjaar 2023", "nr": 9, "q": "Welke acties kan je als Duiker-Hulpverlener stellen na een duikongeval?", "a": "Doorverwijzen naar het Mental Coaching team.", "b": "De getroffenen samenbrengen.", "c": "De getroffene laten ventileren over het duikongeval.", "d": "Alle informatie verzamelen om die zo correct mogelijk door te geven aan de pers.", "correct": ["A", "B", "C"], "cat": "Mental coaching"}, {"id": 9, "exam": "voorjaar 2023", "nr": 10, "q": "Op duikreis krijgt één van je buddy's oorpijn na enkele dagen duiken. Het kan gaan om:", "a": "barotrauma van het middenoor;", "b": "ontsteking van de huid van de uitwendige gehoorgang (otitis externa);", "c": "hersenvliesontsteking;", "d": "ontsteking van het middenoor.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 10, "exam": "voorjaar 2023", "nr": 11, "q": "Hoe ontstaat decompresieziekte?", "a": "Door een opstapeling van CO2 in de weefsels.", "b": "Door een verstoorde bloedcirculatie tgv bloedklonters.", "c": "Door de aanwezigheid van stikstofbellen.", "d": "Door de aanwezigheid van luchtbellen.", "correct": ["C"], "cat": "Decompressie ongevallen"}, {"id": 11, "exam": "voorjaar 2023", "nr": 12, "q": "Na contact met bijtende vissen ...", "a": "probeer je de bloeding te stoppen;", "b": "kan het slachtoffer de wetsuit aanhouden;", "c": "hoef je nooit te vrezen voor anafylactische shock;", "d": "is dringende gespecialiseerde hulp noodzakelijk.", "correct": ["A", "B", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 12, "exam": "voorjaar 2023", "nr": 13, "q": "De symptomen bij immersielongoedeem zijn:", "a": "pijn en krampen in de maagstreek;", "b": "ademnood, hoesten, soms met pijn in de borstkas;", "c": "hevig rillen in combinatie met ongecontroleerd ademen;", "d": "niet te onderscheiden van stikstofnarcose.", "correct": ["B"], "cat": "Immersie longoedeem"}, {"id": 13, "exam": "voorjaar 2023", "nr": 14, "q": "Je buddy vertoont onmiddellijk na het bovenkomen pijn bij het ademen en heeft bloederig schuim op de lippen. Wat ga je doen?", "a": "Je belt de hulpdiensten.", "b": "Je laat hem/haar enkele liters water drinken.", "c": "Je geeft hem/haar 100% normobare zuurstof.", "d": "Je mag hem/haar in halfzittende houding plaatsen zolang hij/zij bewust is.", "correct": ["A", "C", "D"], "cat": "Barotrauma"}, {"id": 14, "exam": "voorjaar 2023", "nr": 15, "q": "Welke ziektetekenen kunnen wijzen op een decompressieziekte?", "a": "Tintelingen in de voeten na de duik.", "b": "Vertigo of draaiduizeligheid bij het afdalen tijdens de duik.", "c": "Bloederig schuim in de duikbril op het einde van de duik.", "d": "Dronken gevoel op diepte.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 15, "exam": "voorjaar 2023", "nr": 16, "q": "Door te hyperventileren bereik je:", "a": "sterke verhoging van het zuurstofgehalte in het bloed;", "b": "verlenging van de apneutijd;", "c": "verminderd syncopegevaar;", "d": "verlaging van het CO2-gehalte in het bloed.", "correct": ["B", "D"], "cat": "Vrijduik"}, {"id": 16, "exam": "voorjaar 2023", "nr": 17, "q": "Een jeugdduiker van 10 jaar vergeet op de zwembadtraining zijn snorkel. Je geeft hem een reservesnorkel van een volwassene. Welke bewering(en) is/zijn juist?", "a": "Dit kan aanleiding geven tot hypercapnie.", "b": "Dit is geen probleem, op voorwaarde dat het mondstuk past.", "c": "Dit kan de dode ruimte doen toenemen.", "d": "Dit vormt nooit een probleem.", "correct": ["A", "C"], "cat": "Gasintoxicaties"}, {"id": 17, "exam": "voorjaar 2023", "nr": 18, "q": "Welke factoren verhogen het risico op een decompressie-ongeval?", "a": "Een duik met verplichte trappen (decompressieduik), ook als die correct uitgevoerd worden.", "b": "Een open foramen ovale.", "c": "Meerdaagse duiken.", "d": "Duiken met nitrox waarbij je de duikcomputer op lucht hebt laten staan.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 18, "exam": "voorjaar 2023", "nr": 19, "q": "Welke bewering(en) is/zijn correct met betrekking tot de uitwendige gehoorgang?", "a": "Een ontsteking van de uitwendige gehoorgang is zelden pijnlijk.", "b": "Een ontsteking van de uitwendige gehoorgang betekent duikverbod.", "c": "Zure druppels helpen preventief bij een uitwendige gehoorgangontsteking.", "d": "De oren na het duiken extra spoelen met zout water werkt preventief.", "correct": ["C"], "cat": "Barotrauma"}, {"id": 19, "exam": "voorjaar 2023", "nr": 20, "q": "Tijdens een duik in onze wateren wordt iemand gestraald door een kwal.", "a": "Indien geen andere middelen ter beschikking zijn, kan je even op de wonde urineren. Dit verzacht de pijn.", "b": "De 'Druk Immobilisatie Verband Techniek' is onder andere de juiste behandeling.", "c": "Koel het getroffen gebied 15 minuten met ijs in een plastiek zak of met een 'coldpack'.", "d": "Bij twijfel: bel 070-24 52 45 (Antigifcentrum).", "correct": ["C", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 20, "exam": "voorjaar 2023", "nr": 21, "q": "Longoverdruk bij duiken met lucht kan ontstaan door:", "a": "normaal te stijgen (10 m/min.) zonder voldoende uit te ademen;", "b": "een paniekstijging;", "c": "een hijgtoestand;", "d": "een kramp (spasme) van de stemspleet.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 21, "exam": "voorjaar 2023", "nr": 22, "q": "Wat moet de duikerhulpverlener doen bij een bewuste duiker met vermoeden van decompressieziekte?", "a": "Zuurstof toedienen, laten drinken en de hulpdiensten activeren.", "b": "Zuurstof toedienen, niet laten drinken en de hulpdiensten activeren.", "c": "De hulpdiensten activeren en het verder aan hen overlaten.", "d": "Zuurstof toedienen, het slachtoffer continu laten bewegen en de hulpdiensten activeren.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 22, "exam": "voorjaar 2023", "nr": 23, "q": "Hoofdpijn na een duik kan ontstaan door:", "a": "'skip-breathing'.", "b": "zuurstofvergiftiging.", "c": "CO2-retentie (vasthouden).", "d": "te spannende duikkap of duikbril.", "correct": ["A", "C", "D"], "cat": "Gasintoxicaties"}, {"id": 23, "exam": "voorjaar 2023", "nr": 24, "q": "Een duiker klaagt van een hese stem na een duik. Welke bewering(en) is/zijn juist?", "a": "Dit is waarschijnlijk het gevolg van een verkeerd stemgebruik.", "b": "Dit kan wijzen op een longoverdruk.", "c": "Dit kan wijzen op een barotrauma van een sinus.", "d": "Deze duiker moet je naar de spoedopname laten brengen.", "correct": ["B", "D"], "cat": "Barotrauma"}, {"id": 24, "exam": "voorjaar 2023", "nr": 25, "q": "Klaplong. Welke beweringen zijn juist?", "a": "Ontstaat als je buddy je een te hevige klap geeft om je bij te brengen na bewusteloosheid.", "b": "Kun je vermoeden als de borstkas niet symmetrisch beweegt bij het ademen.", "c": "Ontstaat bij longoverdruk als er lucht tussen borst- en longvlies raakt.", "d": "Kan de ademhaling erg bemoeilijken en vereist activatie van de hulpdiensten.", "correct": ["B", "C", "D"], "cat": "Barotrauma"}, {"id": 25, "exam": "voorjaar 2023", "nr": 26, "q": "PFO of 'Patent Foramen Ovale' van het hart:", "a": "is een verbinding tussen beide voorkamers van het hart;", "b": "verlaagt de contractiekracht van het hart, waardoor de duiker minder fit is;", "c": "verhoogt de kans op decompressieziekte, maar enkel bij het duiken met lucht;", "d": "moet bij elke duiker eenmaal opgespoord worden.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 26, "exam": "voorjaar 2023", "nr": 27, "q": "Bloederig vocht uit het oor (otorhaghie) kan optreden bij:", "a": "een trommelvliesperforatie na moeilijk klaren;", "b": "een decompressie ongeval van het oor;", "c": "extreem krachtig klaren;", "d": "te snel dalen.", "correct": ["A", "C", "D"], "cat": "Barotrauma"}, {"id": 27, "exam": "voorjaar 2023", "nr": 28, "q": "Een duiker gaat voor het eerst naar een diepte van 40 m met gewone lucht. Hij/zij komt je nadien vertellen dat hij/zij zich 'raar' voelde en dat het leek alsof zijn/haar gezichtsveld beperkt was. Dit moet je doen denken aan: (één antwoord)", "a": "een hijgtoestand;", "b": "een stikstofnarcose;", "c": "een hyperventilatie;", "d": "een zuurstofvergiftiging.", "correct": ["B"], "cat": "Gasintoxicaties"}, {"id": 28, "exam": "voorjaar 2023", "nr": 29, "q": "Wondverzorging. Welke bewering(en) is/zijn juist?", "a": "Een wonde moet door de hulpverlener steeds ontsmet worden.", "b": "Een wonde moet door de hulpverlener steeds gereinigd worden.", "c": "Een wonde moet door de hulpverlener ontsmet worden indien de kans op infectie bestaat.", "d": "Een wonde moet gereinigd, maar nooit ontsmet worden.", "correct": ["B", "C"], "cat": "EHBO"}, {"id": 29, "exam": "voorjaar 2023", "nr": 30, "q": "De buis van Eustachius:", "a": "kan verstopt zijn tijdens een verkoudheid;", "b": "is niet gelijk bij een volwassene en een kind;", "c": "een valsalva mag je uitvoeren bij het stijgen;", "d": "bij een slikbeweging opent de buis van Eustachius zich.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 30, "exam": "voorjaar 2023", "nr": 31, "q": "Welke van volgende symptomen kunnen gezien worden bij een decompressieziekte?", "a": "Ongewone vermoeidheid.", "b": "Onmogelijkheid om recht lopen zonder steun.", "c": "Grillige paarse verkleuringen op de huid (marmerhuid - cutis marmorata).", "d": "Braken.", "correct": ["A", "B", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 31, "exam": "voorjaar 2023", "nr": 32, "q": "Welke bewering(en) is/zijn juist?", "a": "Je koelt sneller af in koude lucht dan in koud water.", "b": "De beste manier om warm te blijven in koud water is intensief bewegen.", "c": "Het hoofd is een belangrijke bron van warmteverlies.", "d": "Onderkoeling kan leiden tot bewustzijnsstoornissen.", "correct": ["C", "D"], "cat": "Effecten koude"}, {"id": 32, "exam": "najaar 2023", "nr": 1, "q": "Een decompressieziekte:", "a": "kan het gevolg zijn van het verkeerd gebruik van de duikcomputer;", "b": "kan optreden bij correct gebruik van de duikcomputer;", "c": "begint steeds onmiddellijk na de duik;", "d": "bij lichte symptomen mag gewacht worden met behandelen.", "correct": ["A", "B"], "cat": "Decompressie ongevallen"}, {"id": 33, "exam": "najaar 2023", "nr": 2, "q": "Mag een gebrevetteerd DHV pijnstillende medicatie toedienen aan een slachtoffer?", "a": "Ja, zolang het enkel om lichte pijnstillers zoals Dafalgan of paracetamol gaat.", "b": "Ja, op voorwaarde dat de vervaldatum niet overschreden is.", "c": "Ja, op voorwaarde dat je nagevraagd hebt of het slachtoffer niet allergisch is.", "d": "Neen.", "correct": ["D"], "cat": "EHBO"}, {"id": 34, "exam": "najaar 2023", "nr": 3, "q": "Een longoverdruk kan voorkomen:", "a": "tijdens apneuoefeningen in het zwembad;", "b": "tijdens apneuoefeningen in open water;", "c": "tijdens oefeningen met duikfles in het zwembad;", "d": "tijdens oefeningen met duikfles in open water.", "correct": ["C", "D"], "cat": "Barotrauma"}, {"id": 35, "exam": "najaar 2023", "nr": 4, "q": "Welke factoren bevorderen het optreden van een decompressieziekte?", "a": "Duiken met nitrox.", "b": "Open foramen ovale van het hart.", "c": "Teveel water drinken voor de duik.", "d": "Leeftijd.", "correct": ["B", "D"], "cat": "Decompressie ongevallen"}, {"id": 36, "exam": "najaar 2023", "nr": 5, "q": "Na een trommelvliesscheur krijgt een duiker tijdelijk duikverbod. Welke bewering(en) is/zijn juist?", "a": "Duiken met trommelvliesscheur kan leiden tot infectie van het middenoor.", "b": "Duiken met trommelvliesscheur geeft risico op evenwichtsstoornissen.", "c": "Duikverbod tot heling van de scheur, vastgesteld door een arts.", "d": "Duikverbod gedurende 3 dagen.", "correct": ["A", "B", "C"], "cat": "Barotrauma"}, {"id": 37, "exam": "najaar 2023", "nr": 6, "q": "Wat gebeurt er met de partiële gasdrukken in de longen in de loop van een apneu?", "a": "pCO2 stijgt, pO2 daalt, pN2 verandert niet.", "b": "pCO2 verandert niet, pO2 daalt, pN2 stijgt.", "c": "pCO2 stijgt, pO2 verandert niet, pN2 daalt.", "d": "Alle partiële gasdrukken dalen.", "correct": ["A"], "cat": "Vrijduik"}, {"id": 38, "exam": "najaar 2023", "nr": 7, "q": "Voorafgaand aan een duikuitstap met de club moet je als Duiker-Hulpverlener volgende zaken controleren:", "a": "de EHBO-kit is mee;", "b": "er is een zuurstoffles mee (2 l op 200 bar is genoeg);", "c": "er is een zuurstoffles mee (minstens 6 l op 200 bar);", "d": "er is water mee.", "correct": ["A", "C", "D"], "cat": "EHBO"}, {"id": 39, "exam": "najaar 2023", "nr": 8, "q": "Een duiker ondervindt tijdens het dalen moeite met het klaren van de oren. Na een krachtig Valsalva lukt het dan toch. Hij voelt zich duizelig, maar beslist verder te duiken. De duik gaat naar -25 m voor 30 min. Na de duik heeft hij last van oorsuizen rechts en blijft de duizeligheid in lichte mate aanwezig. Wat is de meest waarschijnlijke oorzaak?", "a": "Migraineaanval.", "b": "Binnenoorbarotrauma.", "c": "Longoverdruk.", "d": "Bends.", "correct": ["B"], "cat": "Barotrauma"}, {"id": 40, "exam": "najaar 2023", "nr": 9, "q": "Zeeziekte:", "a": "maakt deel uit van kinetose of bewegingsziekte;", "b": "ontstaat omdat de hersenen tegenstrijdige informatie krijgen van verschillende zintuigen;", "c": "als je het eenmaal gehad hebt kun je het nooit meer krijgen;", "d": "best nuchter inschepen.", "correct": ["A", "B"], "cat": "Reisapotheek"}, {"id": 41, "exam": "najaar 2023", "nr": 10, "q": "Beweringen met betrekking tot de longblaasjes: wat is juist?", "a": "Er zijn ongeveer 1.000 longblaasjes per long.", "b": "De longblaasjes dienen voor uitwisseling van CO2 en O2.", "c": "In de longblaasjes mengt de lucht zich met het bloed.", "d": "Surfactant zorgt ervoor dat de longblaasjes niet dichtklappen.", "correct": ["B", "D"], "cat": "Gasintoxicaties"}, {"id": 42, "exam": "najaar 2023", "nr": 11, "q": "Na een clubuitstap met 2 duiken wil je 's anderendaags om 10.00 uur een parachutesprong doen vanop een hoogte van 4.000 m. Welke bewering(en) is/zijn juist?", "a": "Dat kan zonder problemen.", "b": "Dat is een risico op een decompressieziekte.", "c": "Dat kan een barotrauma van het middenoor opleveren.", "d": "Dat kan een uitgestelde longoverdruk geven.", "correct": ["B", "C"], "cat": "Decompressie ongevallen"}, {"id": 43, "exam": "najaar 2023", "nr": 12, "q": "Wat moet de Duiker-Hulpverlener doen bij vermoeden van decompressieziekte bij een bewuste duiker?", "a": "Zuurstof toedienen, laten drinken en de hulpdiensten activeren.", "b": "Zuurstof toedienen, niet laten drinken en de hulpdiensten activeren.", "c": "De hulpdiensten activeren en het verder aan hen overlaten.", "d": "Zuurstof toedienen, het slachtoffer continu laten bewegen en de hulpdiensten activeren.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 44, "exam": "najaar 2023", "nr": 13, "q": "Welke bewering(en) over wondzorg is/zijn correct?", "a": "Ontsmetting is steeds noodzakelijk.", "b": "Vochtige wondheling heeft de voorkeur bij schaaf- en brandwonden.", "c": "De tetanusvaccinatie status moet worden nagevraagd.", "d": "Langdurig koelen met water is altijd de eerste stap bij brandwonden.", "correct": ["B", "C", "D"], "cat": "EHBO"}, {"id": 45, "exam": "najaar 2023", "nr": 14, "q": "Je buddy wordt met verschijnselen van onderkoeling uit het water gehaald. Je vindt een isothermisch deken in de EHBO-tas. Wat doe je?", "a": "Je wikkelt hem in het isothermisch deken met de zilveren zijde aan de buitenkant.", "b": "Je wikkelt hem in het isothermisch deken met de gouden zijde aan de buitenkant.", "c": "Een isothermisch deken is vandaag niet nodig, want de zon schijnt volop.", "d": "Om te vermijden dat je buddy verder afkoelt probeer je ook het hoofd met het isothermisch deken te bedekken.", "correct": ["B", "D"], "cat": "Effecten koude"}, {"id": 46, "exam": "najaar 2023", "nr": 15, "q": "Een duiker komt je na een duik van 45 min met een maximale diepte van 15 m vertellen dat hij/zij zich bij het opstijgen licht kortademig voelde. Er deden zich geen incidenten voor tijdens de duik. Waaraan moet je in de eerste plaats denken? (1 antwoord)", "a": "Een beginnende longontsteking.", "b": "Immersie longoedeem.", "c": "Een licht decompressieongeval.", "d": "Slechte algemene conditie.", "correct": ["B"], "cat": "Immersie longoedeem"}, {"id": 47, "exam": "najaar 2023", "nr": 16, "q": "Gehoorverlies na een duik:", "a": "is van geen belang, successieve duik is toegelaten;", "b": "vereist een raadpleging van een NKO-arts (Neus-Keel-Oor);", "c": "vereist een verlenging van de trappen bij een volgende duik;", "d": "kan een behandeling in een herdrukkingskamer vereisen.", "correct": ["B", "D"], "cat": "Barotrauma"}, {"id": 48, "exam": "najaar 2023", "nr": 17, "q": "De eerste hulp bij immersie longoedeem:", "a": "begint al in het water door de duiker in horizontale positie te brengen;", "b": "men moet de duiker zo snel mogelijk uit het water halen;", "c": "men moet de duiker heel geleidelijk uit het water halen;", "d": "zuurstof toedienen en de hulpdiensten activeren.", "correct": ["A", "B", "D"], "cat": "Immersie longoedeem"}, {"id": 49, "exam": "najaar 2023", "nr": 18, "q": "Barotrauma van de longen bij duik met flessen: welke beweringen zijn juist?", "a": "Het longweefsel kan scheuren door overdruk.", "b": "Het longweefsel kan scheuren door onderdruk.", "c": "Er kan bloed in de luchtwegen terecht komen.", "d": "Er kan lucht in de bloedvaten terecht komen.", "correct": ["A", "C", "D"], "cat": "Barotrauma"}, {"id": 50, "exam": "najaar 2023", "nr": 19, "q": "Duikers die voor het eerst naar -40 m gaan met lucht moeten gewaarschuwd worden voor: (1 antwoord)", "a": "een CO2 narcose;", "b": "een stikstofnarcose;", "c": "hypocapnie;", "d": "een zuurstofvergiftiging.", "correct": ["B"], "cat": "Gasintoxicaties"}, {"id": 51, "exam": "najaar 2023", "nr": 20, "q": "Longoverdruk. Wanneer moet je eraan denken?", "a": "Bij duiker met tekenen van een klaplong.", "b": "Bij een duiker die bewusteloos uit het water wordt gehaald.", "c": "Bij een duiker met onderhuidse bloedingen rond de ogen.", "d": "Bij een duiker met een hese stem na de duik.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 52, "exam": "najaar 2023", "nr": 21, "q": "Hoe kan je de verbondenheid vergroten bij een duiker na een duikongeval?", "a": "Een goed feest organiseren.", "b": "De getroffen duiker in verbinding stellen met buddy en andere duikers.", "c": "De getroffen duiker laten bellen naar familie.", "d": "De getroffen duiker vertellen bij wie hij/zij op dit moment terecht kan.", "correct": ["B", "C", "D"], "cat": "Mental coaching"}, {"id": 53, "exam": "najaar 2023", "nr": 22, "q": "Decompressieziekte kan veroorzaakt worden door:", "a": "stikstofbellen;", "b": "luchtbellen;", "c": "CO2-bellen;", "d": "heliumbellen.", "correct": ["A", "D"], "cat": "Decompressie ongevallen"}, {"id": 54, "exam": "najaar 2023", "nr": 23, "q": "Buiten adem zijn tijdens een duik (hijgtoestand):", "a": "heeft te maken met te hoge inspanning onder water;", "b": "kan te wijten zijn aan een minder goede algemene conditie van de duiker;", "c": "kan leiden tot bewusteloosheid;", "d": "verbetert door dieper in te ademen.", "correct": ["A", "B", "C"], "cat": "Gasintoxicaties"}, {"id": 55, "exam": "najaar 2023", "nr": 24, "q": "Een slachtoffer dat gered wordt na een verdrinking in een zwembad, terug goed bewust is en goed ademt moet toch steeds naar een ziekenhuis gebracht worden om volgende reden(en).", "a": "Het slachtoffer kan onverwacht opnieuw het bewustzijn verliezen.", "b": "Het slachtoffer kan uren later kortademig worden.", "c": "Er kan een chloorvergiftiging optreden.", "d": "Er kan een kramptoestand van de stembanden optreden.", "correct": ["B"], "cat": "Verdrinking"}, {"id": 56, "exam": "najaar 2023", "nr": 25, "q": "Bij apneu oefeningen in het zwembad zie je duikers vaak enkele minuten diep in- en uitademen (hyperventileren). Welke bewering(en) is/zijn juist hieromtrent?", "a": "Zo stellen ze hun ademprikkel uit.", "b": "Hierdoor kunnen ze plots het bewustzijn verliezen tijdens de oefening.", "c": "Zo bouwen ze een grote zuurstofvoorraad op in hun longen.", "d": "Tijdens het hyperventileren kunnen ze duizelig worden.", "correct": ["A", "B", "D"], "cat": "Vrijduik"}, {"id": 57, "exam": "najaar 2023", "nr": 26, "q": "Je buddy vertoont onmiddellijk na het bovenkomen pijn bij het ademen en bloederig schuim op de lippen. Wat ga je doen?", "a": "Je belt de hulpdiensten.", "b": "Je start beademing met het pocket mask.", "c": "Je plaatst hem/haar in halfzittende houding en geeft 100% normobare zuurstof.", "d": "Je laat hem snel enkele liters water drinken.", "correct": ["A", "C"], "cat": "Barotrauma"}, {"id": 58, "exam": "najaar 2023", "nr": 27, "q": "Op duikreis krijgt één van je buddy's oorpijn na enkele dagen duiken. Het kan gaan om:", "a": "barotrauma van het middenoor;", "b": "ontsteking van de huid van de gehoorgang (otitis externa);", "c": "koraalziekte;", "d": "ontsteking van het middenoor.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 59, "exam": "najaar 2023", "nr": 28, "q": "Een duiker komt boven en vermeldt duizelig geweest te zijn tijdens het stijgen. Na de duik zijn er geen problemen meer.", "a": "Het gaat waarschijnlijk om een alternobaar vertigo.", "b": "Het gaat waarschijnlijk om een binnenoorbarotrauma.", "c": "Het gaat waarschijnlijk om een sinusbarotrauma.", "d": "De duiker onmiddellijk naar een spoedgevallendienst sturen.", "correct": ["A"], "cat": "Barotrauma"}, {"id": 60, "exam": "najaar 2023", "nr": 29, "q": "Toedienen van zuurstof aan een duiker na een duikongeval mag (mits inachtneming van de noodzakelijke voorzorgsmaatregelen en mits voortdurende observatie van het slachtoffer):", "a": "altijd;", "b": "niet na een duik met nitrox;", "c": "niet bij zware rokers;", "d": "niet bij een bewusteloos slachtoffer.", "correct": ["A"], "cat": "EHBO"}, {"id": 61, "exam": "najaar 2023", "nr": 30, "q": "Een duiker met een paraplegie als gevolg van een duikongeval:", "a": "kan beide benen niet meer bewegen;", "b": "kan linkerarm en linkerbeen of rechterarm en rechterbeen niet meer bewegen;", "c": "is meestal nog goed bewust;", "d": "kan problemen hebben om te plassen.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 62, "exam": "najaar 2023", "nr": 31, "q": "Na een duik in de steengroeve naar 30 meter krijgt iemand plots een pijnscheut ter hoogte van de lendenen. Even later kan hij/zij niet meer rechtstaan. De stijgsnelheid en stops zijn correct uitgevoerd.", "a": "Dit heeft te maken met een vooraf bestaand rugprobleem.", "b": "Dit kan een decompressieongeval zijn.", "c": "Dit vereist snelle toediening van zuurstof.", "d": "Dit is niet diep genoeg om een decompressieongeval te veroorzaken.", "correct": ["B", "C"], "cat": "Decompressie ongevallen"}, {"id": 63, "exam": "najaar 2023", "nr": 32, "q": "Acute zuurstofvergiftiging:", "a": "treedt geleidelijk op vanaf 30 m;", "b": "wordt steeds voorafgegaan door trillingen rond de mond en van de oogleden;", "c": "treedt op na langdurig (> 4 uur) toedienen van 100% zuurstof aan een slachtoffer;", "d": "kan plots stuiptrekkingen geven met gevaar voor verdrinking.", "correct": ["D"], "cat": "Gasintoxicaties"}, {"id": 64, "exam": "voorjaar 2024", "nr": 1, "q": "Hoe ontstaat decompressieziekte?", "a": "Door een opstapeling van CO2 in de weefsels.", "b": "Door een verstoorde bloedcirculatie tgv bloedklonters.", "c": "Door de aanwezigheid van stikstofbellen.", "d": "Door de aanwezigheid van luchtbellen.", "correct": ["C"], "cat": "Decompressie ongevallen"}, {"id": 65, "exam": "voorjaar 2024", "nr": 2, "q": "Wat moet je doen met een vuile snijwonde?", "a": "Eerst de eigen handen wassen en wegwerphandschoenen aantrekken indien beschikbaar.", "b": "Onmiddellijk met ether ontsmetten.", "c": "De wonde reinigen met gewone zeep of met een antiseptische zeep indien beschikbaar.", "d": "De wonde laten drogen aan de lucht.", "correct": ["A", "C"], "cat": "EHBO"}, {"id": 66, "exam": "voorjaar 2024", "nr": 3, "q": "Longoverdruk. Wanneer moet je eraan denken?", "a": "Bij een duiker met ademhalingsmoeilijkheden.", "b": "Bij een duiker die bewusteloos uit het water wordt gehaald.", "c": "Bij een duiker met onderhuidse bloedingen rond de ogen.", "d": "Bij een duiker met een hese stem na de duik.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 67, "exam": "voorjaar 2024", "nr": 4, "q": "Je duikmaat klaagt 30 minuten na de duik nog steeds van duizeligheid en oorsuizen.", "a": "Je stelt voor 24 uur af te wachten.", "b": "Je geeft 100% normobare zuurstof.", "c": "Je geeft de raad onmiddellijk medisch advies te zoeken.", "d": "Je geeft oordruppels.", "correct": ["B", "C"], "cat": "Barotrauma"}, {"id": 68, "exam": "voorjaar 2024", "nr": 5, "q": "Het gevaar van een hijgtoestand bestaat erin dat:", "a": "het kan leiden tot paniek;", "b": "het een chronische zuurstofintoxicatie kan veroorzaken;", "c": "het bewusteloosheid kan veroorzaken;", "d": "het kan overgaan naar een longoverdruk.", "correct": ["A", "C"], "cat": "Gasintoxicaties"}, {"id": 69, "exam": "voorjaar 2024", "nr": 6, "q": "De symptomen bij immersielongoedeem zijn:", "a": "pijn en krampen in de maagstreek;", "b": "ademnood, hoesten, soms met pijn op de borstkas;", "c": "hevig rillen in combinatie met ongecontroleerd ademen;", "d": "niet te onderscheiden van stikstofnarcose.", "correct": ["B"], "cat": "Immersie longoedeem"}, {"id": 70, "exam": "voorjaar 2024", "nr": 7, "q": "Waaruit bestaat de behandeling van decompressieziekte?", "a": "Vochttoediening.", "b": "Normobare zuurstof.", "c": "Terug afdalen in het water en de gemiste stops verdubbelen.", "d": "Herdrukken in een meerplaatsdrukkamer.", "correct": ["A", "B", "D"], "cat": "Decompressie ongevallen"}, {"id": 71, "exam": "voorjaar 2024", "nr": 8, "q": "Tijdens het vrijduiken kan men:", "a": "het bewustzijn verliezen bij het stijgen;", "b": "een trommelvliesscheur oplopen;", "c": "een longoverdruk krijgen;", "d": "onderkoeld raken.", "correct": ["A", "B", "D"], "cat": "Vrijduik"}, {"id": 72, "exam": "voorjaar 2024", "nr": 9, "q": "Een zwemmer wordt onderkoeld uit het water gehaald. Als DHV kan je hulp bieden. Wat doe je?", "a": "Je wikkelt hem helemaal in een isolatiedeken met de gouden zijde aan de buitenkant.", "b": "Je warmt eerst de handen en de voeten op want niets is zo vervelend als ijskoude handen en voeten.", "c": "Niets. De onderkoelde zwemmer is uit het water gehaald en kan zijn plan wel trekken.", "d": "Je houdt een omstaander tegen omdat deze het slachtoffer een flinke scheut whisky wil geven om goed op te warmen.", "correct": ["A", "D"], "cat": "Effecten koude"}, {"id": 73, "exam": "voorjaar 2024", "nr": 10, "q": "Wat is juist?", "a": "Of water zoet of zout is speelt geen rol in de overlevingskansen bij een verdrinking.", "b": "Hydrocutie kan een oorzaak van verdrinking zijn.", "c": "Bij een verdrinking wordt hypoxie in 20% van de gevallen veroorzaakt door aspiratie en in 80% door een spasme.", "d": "Een geredde drenkeling hoeft niet altijd naar een ziekenhuis te worden gebracht.", "correct": ["A", "B"], "cat": "Verdrinking"}, {"id": 74, "exam": "voorjaar 2024", "nr": 11, "q": "Welke bewering(en) is (zijn) juist?", "a": "De kans op decompressieziekte bij de sportduiker is dankzij de nieuwe duikcomputers één op een miljoen duiken (1/1.000.000).", "b": "Enkele minuten zuivere zuurstof ademen voor de duik beschermt je tegen decompressieziekte.", "c": "Een matige inspanning tijdens de stijgfase bevordert de gaseliminatie en aldus het risico op decompressieziekte.", "d": "Je mag het vliegtuig niet nemen tijdens de no-fly time omdat de druk in het vliegtuig lager is dan 1 bar.", "correct": ["C", "D"], "cat": "Decompressie ongevallen"}, {"id": 75, "exam": "voorjaar 2024", "nr": 12, "q": "Welke ziektetekenen kunnen je doen denken aan een barotrauma van het binnenoor?", "a": "Bloed dat uit het oor loopt.", "b": "Draaiduizeligheid (vertigo).", "c": "Gehoorverlies.", "d": "Oorsuizen (tinnitus).", "correct": ["B", "C", "D"], "cat": "Barotrauma"}, {"id": 76, "exam": "voorjaar 2024", "nr": 13, "q": "Tijdens de BBQ na de duik krijgt iemand een gloeiend kooltje op de hand. Er ontstaat snel een blaar met omgevende roodheid. Wat moet je doen?", "a": "Onmiddellijk koelen met stromend lauw water.", "b": "Kan men bedekken met 'Flammazine' of 'Flamigel' na het koelen.", "c": "De blaar openprikken vooraleer ze groter wordt.", "d": "Na de eerste behandeling een proper driehoek-verband aanbrengen.", "correct": ["A", "B", "D"], "cat": "EHBO"}, {"id": 77, "exam": "voorjaar 2024", "nr": 14, "q": "Welke beweringen over immersielongoedeem zijn correct?", "a": "Een slecht onderhouden ademautomaat kan bijdragen tot het ontstaan van immersielongoedeem.", "b": "Eens de symptomen verdwenen zijn mag men opnieuw duiken.", "c": "Immersielongoedeem en hijgtoestand (CO2-vergiftiging) zijn hetzelfde.", "d": "Niet alleen duikers, maar ook zwemmers kunnen het slachtoffer zijn van immersielongoedeem.", "correct": ["A", "D"], "cat": "Immersie longoedeem"}, {"id": 78, "exam": "voorjaar 2024", "nr": 15, "q": "Tijdens een duik naar -18 m gebeurt na 20 min het volgende: bij het bedienen van de inflatieknop van het droogpak blokkeert deze en de duiker stijgt ongecontroleerd op. Aan de oppervlakte is er hoesten en pijn op de borst. Meest waarschijnlijke oorzaak: (één antwoord)", "a": "decompressieongeval;", "b": "hartinfarct;", "c": "longoverdruk;", "d": "immersielongoedeem.", "correct": ["C"], "cat": "Barotrauma"}, {"id": 79, "exam": "voorjaar 2024", "nr": 16, "q": "Welke symptomen moeten je doen denken aan decompressieziekte?", "a": "Pijn aan een gewricht.", "b": "Rood-paarse verkleuringen op de huid ('cutis marmorata' of marmerhuid).", "c": "Gevoelsstoornissen in de benen.", "d": "Neusbloeding bij het bovenkomen.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 80, "exam": "voorjaar 2024", "nr": 17, "q": "Wat kan de duiker-hulpverlener doen bij het vervoer van een bewusteloze duiker die kortademig is en bloed ophoest?", "a": "Proberen te laten drinken.", "b": "Naar een caisson vervoeren in halfzittende houding.", "c": "In stabiele zijligging plaatsen op de achterbank en naar de spoedopname brengen.", "d": "Ter plaatse blijven, de 112 bellen en de duiker zuurstof geven.", "correct": ["D"], "cat": "EHBO"}, {"id": 81, "exam": "voorjaar 2024", "nr": 18, "q": "Gehoorverlies na een duik kan het gevolg zijn van:", "a": "een barotrauma van het binnenoor;", "b": "een barotrauma van het middenoor;", "c": "een barotrauma van de voorhoofdssinus;", "d": "een prop oorsmeer die de gehoorgang verstopt.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 82, "exam": "voorjaar 2024", "nr": 19, "q": "Tijdens het duiken neemt de ademarbeid toe. Waaraan is dit toe te schrijven?", "a": "De verhoogde partiële zuurstofdruk.", "b": "De 'bloodshift'.", "c": "De verhoogde dichtheid van het ademmengsel.", "d": "De afname van de dode ruimte.", "correct": ["B", "C"], "cat": "Gasintoxicaties"}, {"id": 83, "exam": "voorjaar 2024", "nr": 20, "q": "De belangrijkste risicofactoren voor het ontstaan van decompressieziekte is: (één antwoord)", "a": "de duikdiepte", "b": "de duiktijd;", "c": "de aanwezigheid van een 'Patent Foramen Ovale' in het hart;", "d": "de temperatuur van het water.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 84, "exam": "voorjaar 2024", "nr": 21, "q": "Op duikreis krijgt één van je buddy's oorpijn na enkele dagen duiken. Het kan gaan om:", "a": "barotrauma van het middenoor;", "b": "ontsteking van de huid van de gehoorgang (otitis externa);", "c": "hersenvliesontsteking;", "d": "ontsteking van het middenoor.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 85, "exam": "voorjaar 2024", "nr": 22, "q": "Pijn in het voorhoofd die optreedt bij het dalen kan wijzen op:", "a": "luchtbellen in de sinussen;", "b": "decompressieziekte;", "c": "barotrauma van de voorhoofdssinus;", "d": "overdruk in het masker.", "correct": ["C"], "cat": "Barotrauma"}, {"id": 86, "exam": "voorjaar 2024", "nr": 23, "q": "Decompressieziekte:", "a": "kan optreden ondanks respecteren van stijgsnelheid en (eventuele) trappen;", "b": "begint steeds onmiddellijk na het beëindigen van de duik;", "c": "vereist altijd deskundig advies;", "d": "kan leiden tot blijvende invaliditeit.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 87, "exam": "voorjaar 2024", "nr": 24, "q": "Welke beweringen zijn niet juist?", "a": "Warmteverlies in water is ongeveer 25 x groter dan in lucht.", "b": "Ons lichaam heeft een kerntemperatuur van 36°C.", "c": "Bewegen in het water helpt om het warm te blijven hebben.", "d": "Bij een kerntemperatuur van 33°C stopt het rillen.", "correct": ["B", "C"], "cat": "Effecten koude"}, {"id": 88, "exam": "voorjaar 2024", "nr": 25, "q": "Een gevaarlijk mariene dier krijgt de 'Gif-code 4' – Wat betekent dit?", "a": "Omdat het levensbedreigende vergiftigingen kan veroorzaken, waarvoor géén antigif ter beschikking.", "b": "Omdat eerder een banaal incident en transport naar arts daarom niet altijd nodig is.", "c": "Omdat steeds onmiddellijk transport naar gespecialiseerde hulp (arts) noodzakelijk is.", "d": "Omdat het levensbedreigende vergiftigingen kan veroorzaken, met een antigif ter beschikking is.", "correct": ["C", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 89, "exam": "voorjaar 2024", "nr": 26, "q": "Acute zuurstofvergiftiging:", "a": "treedt geleidelijk op vanaf 30 m;", "b": "begint altijd met trillingen rond de mond;", "c": "treedt op na langdurig (> 4 uur) toedienen van 100% zuurstof aan een slachtoffer;", "d": "is gevaarlijk want kan stuiptrekkingen geven met gevaar voor verdrinking.", "correct": ["D"], "cat": "Gasintoxicaties"}, {"id": 90, "exam": "voorjaar 2024", "nr": 27, "q": "De neus:", "a": "Een uitgesproken scheef neustussenschot beïnvloedt het klaren van de oren.", "b": "Bloed in je masker op het einde van de duik heeft niets te maken met 'maskersqueeze'.", "c": "Bij een verstopte neus klaar je minder vlot.", "d": "Klaren met een kleine neus is eenvoudiger en makkelijker.", "correct": ["A", "C"], "cat": "Barotrauma"}, {"id": 91, "exam": "voorjaar 2024", "nr": 28, "q": "Een klaplong. Welke stelling(en) is (zijn) correct?", "a": "Is een decompressieziekte van de longen.", "b": "Kun je vermoeden als de borstkas niet symmetrisch beweegt bij het ademen.", "c": "Er is lucht tussen beide pleurabladen (longvliezen) terechtgekomen.", "d": "Het is een gevaarlijke toestand die activatie van de hulpdiensten vereist.", "correct": ["B", "C", "D"], "cat": "Barotrauma"}, {"id": 92, "exam": "voorjaar 2024", "nr": 29, "q": "Bewusteloosheid die optreedt tijdens een vrijduik heeft te maken met: (1 antwoord)", "a": "te lage pO2;", "b": "te lage pCO2;", "c": "te lage pN2;", "d": "te lage bloeddruk.", "correct": ["A"], "cat": "Vrijduik"}, {"id": 93, "exam": "voorjaar 2024", "nr": 30, "q": "Zeeziekte:", "a": "maakt deel uit van 'kinetose' of bewegingsziekte;", "b": "ontstaat omdat de hersenen tegenstrijdige informatie krijgen van verschillende zintuigen;", "c": "beweren dat je het nooit gaat krijgen is macho gedrag;", "d": "best nuchter inschepen.", "correct": ["A", "B", "C"], "cat": "Reisapotheek"}, {"id": 94, "exam": "voorjaar 2024", "nr": 31, "q": "Stikstofnarcose (dieptedronkenschap):", "a": "kan een gevoel van paniek geven;", "b": "verdwijnt bij een geoefende duiker;", "c": "kan een gelukzalig gevoel geven;", "d": "belet helder te denken.", "correct": ["A", "C", "D"], "cat": "Gasintoxicaties"}, {"id": 95, "exam": "voorjaar 2024", "nr": 32, "q": "Uitgeademde lucht bevat:", "a": "meer CO2 dan zuurstof;", "b": "enkel stikstof;", "c": "meer zuurstof dan CO2;", "d": "geen zuurstof.", "correct": ["C"], "cat": "Gasintoxicaties"}, {"id": 96, "exam": "najaar 2024", "nr": 1, "q": "Op duikvakantie in Indonesië ontwikkel je na een aantal dagen duiken forse diarree. Wat is juist?", "a": "Reizigersdiarree wordt meestal veroorzaakt door een worm.", "b": "Wanneer er bloed of slijm in de stoelgang aanwezig is, kan dit wijzen op een ernstig verloop.", "c": "Om reizigersdiarree te vermijden, was je best alle groenten en fruit met kraantjeswater voor je het opeet.", "d": "Het is niet altijd nodig om antibiotica in te nemen bij het ontwikkelen van diarree op reis.", "correct": ["B", "D"], "cat": "Reisapotheek"}, {"id": 97, "exam": "najaar 2024", "nr": 2, "q": "Wat moet de Duiker-Hulpverlener doen bij een bewuste duiker met vermoeden van decompressieziekte?", "a": "Zuurstof toedienen, laten drinken en de hulpdiensten activeren.", "b": "Zuurstof toedienen, niet laten drinken en de hulpdiensten activeren.", "c": "De hulpdiensten activeren en het verder aan hen overlaten.", "d": "Zuurstof toedienen, het slachtoffer continu laten bewegen en de hulpdiensten activeren.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 98, "exam": "najaar 2024", "nr": 3, "q": "Een 4*D van 60 jaar klaagt tijdens de après-duik plots van hevige pijn ter hoogte van het borstbeen. Welke volgende bewering(en) is/zijn correct?", "a": "Dit is hoogst waarschijnlijk het gevolg van teveel alcohol.", "b": "Dit is hoogst waarschijnlijk een hartaanval.", "c": "Dit vereist onmiddellijke alarmering van de hulpdiensten.", "d": "Afwachten tot het spontaan betert en voor de zekerheid zuurstof geven.", "correct": ["B", "C"], "cat": "EHBO"}, {"id": 99, "exam": "najaar 2024", "nr": 4, "q": "Welke factoren verhogen het risico op een decompressieziekte?", "a": "Leeftijd.", "b": "Duiken dieper dan 30 m.", "c": "Meerdaagse duikreizen.", "d": "Duiken vanop een boot.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 100, "exam": "najaar 2024", "nr": 5, "q": "Na contact met bijtende vissen:", "a": "pas je de 'Algemene Wond Behandeling' techniek toe;", "b": "is er geen risico op infectie;", "c": "kan je best de wonde ontsmetten;", "d": "is dringende gespecialiseerde hulp noodzakelijk.", "correct": ["A", "C", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 101, "exam": "najaar 2024", "nr": 6, "q": "Welke symptomen doen je in de eerste plaats denken aan een decompressieongeval na een duik van 60 minuten waarvan 30 minuten op een diepte van 30 meter.", "a": "Moeite met rechtop staan.", "b": "Hevige pijn ter hoogte van de borst met ophoesten van bloed.", "c": "Hevige pijn ter hoogte van de rug.", "d": "Pijn ter hoogte van een schouder.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 102, "exam": "najaar 2024", "nr": 7, "q": "Longen en bloedcirculatie. Welke bewering(en) is/zijn juist?", "a": "Onderdompeling in water leidt tot toename van het centrale bloedvolume. We noemen dit ook de 'bloodshift'.", "b": "De surfactant zorgt voor een goede ontplooiing van de longblaasjes.", "c": "Ademen onder water vergt veel minder inspanning dan boven water door de verhoogde zuurstofdruk (ppO2).", "d": "Door goed uit te ademen onder water vermindert de kans op hypercapnie.", "correct": ["A", "B", "D"], "cat": "Gasintoxicaties"}, {"id": 103, "exam": "najaar 2024", "nr": 8, "q": "Een gevaarlijk zeedier krijgt de 'Gif-code 3'. Wat betekent dit?", "a": "Het veroorzaakt een pijnlijke vergiftiging.", "b": "Het veroorzaakt een levensbedreigende vergiftiging waarvoor een antigif beschikbaar is.", "c": "Uitgebreide eerste hulp is noodzakelijk.", "d": "Er is geen risico op een anafylactische of allergische reactie.", "correct": ["A", "C"], "cat": "Gevaarlijke zeedieren"}, {"id": 104, "exam": "najaar 2024", "nr": 9, "q": "Op het einde van een lange apneu-oefening in het zwembad verliest iemand het bewustzijn. Het slachtoffer wordt snel op het droge gebracht. Na enkele beademingen wordt het terug bewust, ademt normaal en voelt zich OK. Wat moet je doen?", "a": "Zuurstof geven.", "b": "Naar huis laten gaan als ademhaling en bewustzijn normaal blijven.", "c": "De 112 bellen als de situatie weer verslechtert.", "d": "De 112 altijd bellen.", "correct": ["A", "D"], "cat": "Vrijduik"}, {"id": 105, "exam": "najaar 2024", "nr": 10, "q": "Een duiker komt boven en vermeldt duizelig geweest te zijn tijdens het stijgen. Na de duik zijn er geen problemen meer.", "a": "Het gaat waarschijnlijk om een alternobaar vertigo.", "b": "Het gaat waarschijnlijk om een binnenoorbarotrauma.", "c": "Het gaat waarschijnlijk om een sinusbarotrauma.", "d": "De duiker onmiddellijk naar een spoedgevallendienst sturen.", "correct": ["A"], "cat": "Barotrauma"}, {"id": 106, "exam": "najaar 2024", "nr": 11, "q": "Vrijduiken. Welke beweringen zijn juist?", "a": "Een vrijduiker kan nooit decompressieziekte oplopen.", "b": "Een vrijduiker kan nooit het slachtoffer worden van immersielongoedeem.", "c": "Een vrijduiker kan nooit een hyperoxie-aanval krijgen.", "d": "Een vrijduiker kan nooit een longsqueeze krijgen.", "correct": ["C"], "cat": "Vrijduik"}, {"id": 107, "exam": "najaar 2024", "nr": 12, "q": "Longoverdruk bij duiken met lucht kan ontstaan door:", "a": "normaal te stijgen (10 m/min) zonder voldoende uit te ademen;", "b": "een paniekstijging;", "c": "een hijgtoestand;", "d": "het omhoog brengen van een bewusteloos slachtoffer.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 108, "exam": "najaar 2024", "nr": 13, "q": "Het oor: wat is juist?", "a": "Het evenwichtsorgaan maakt deel uit van het binnenoor.", "b": "Het middenoor is gevuld met lucht, het binnenoor met vloeistof.", "c": "In het middenoor wordt het geluid overgedragen aan de gehoorzenuw.", "d": "De buis van Eustachius zorgt voor drukevenwicht tussen middenoor en binnenoor.", "correct": ["A", "B"], "cat": "Barotrauma"}, {"id": 109, "exam": "najaar 2024", "nr": 14, "q": "Welke beweringen zijn juist?", "a": "Warmteverlies in water is ongeveer 25x groter dan in lucht.", "b": "Bij een kerntemperatuur van 33°C stopt het rillen.", "c": "Flink bewegen in het water helpt om het warm te blijven hebben.", "d": "De beste manier om koude handen op te warmen is ze in heet water te steken.", "correct": ["A", "B"], "cat": "Effecten koude"}, {"id": 110, "exam": "najaar 2024", "nr": 15, "q": "Je buddy vertoont onmiddellijk na het bovenkomen pijn bij het ademen en bloederig schuim op de lippen. Wat ga je doen?", "a": "Je belt de hulpdiensten.", "b": "Je start beademing met het pocketmask.", "c": "Je plaatst hem/haar in halfzittende houding en geeft 100% normobare zuurstof.", "d": "Je laat hem snel enkele liters water drinken.", "correct": ["A", "C"], "cat": "Barotrauma"}, {"id": 111, "exam": "najaar 2024", "nr": 16, "q": "Acute zuurstofvergiftiging:", "a": "de symptomen lijken erg op een stikstofvergiftiging;", "b": "is een risico bij het gebruik van nitrox;", "c": "is een risico bij het langdurig toedienen van normobare zuurstof;", "d": "stuiptrekkingen kunnen plots optreden, zonder waarschuwingssignalen.", "correct": ["B", "D"], "cat": "Gasintoxicaties"}, {"id": 112, "exam": "najaar 2024", "nr": 17, "q": "Immersielongoedeem. Welke factoren werken bevorderend?", "a": "Duiken in koud water.", "b": "Zware inspanning tijdens het duiken.", "c": "Verticale positie in het water.", "d": "Nieuwe ademautomaat.", "correct": ["A", "B", "C"], "cat": "Immersie longoedeem"}, {"id": 113, "exam": "najaar 2024", "nr": 18, "q": "Klaplong. Welke beweringen zijn juist?", "a": "Ontstaat als je buddy je een te hevige klap geeft om je bij te brengen na bewusteloosheid.", "b": "Kun je vermoeden als de borstkas niet symmetrisch beweegt bij het ademen.", "c": "Ontstaat bij longoverdruk als er lucht tussen borst- en longvlies raakt.", "d": "Kan de ademhaling erg bemoeilijken en vereist activatie van de hulpdiensten.", "correct": ["B", "C", "D"], "cat": "Barotrauma"}, {"id": 114, "exam": "najaar 2024", "nr": 19, "q": "Een barotrauma van het oor kan optreden als gevolg van:", "a": "obstructie door een slijmprop ter hoogte van de buis van Eustachius bij verkoudheid;", "b": "een te spannende duikkap;", "c": "astma;", "d": "te laat klaren.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 115, "exam": "najaar 2024", "nr": 20, "q": "Een beetje bloed in het masker na een duik, zonder pijn, zonder andere symptomen. Wat is je advies als duikerhulpverlener?", "a": "Dit wijst toch op een ernstig letsel en vereist alarmeren van de hulpdiensten.", "b": "Dit is waarschijnlijk een squeeze van de neusholtes.", "c": "Dit is geen ernstig letsel. Voorstellen om bij gelegenheid een arts te raadplegen.", "d": "Een pijnstiller toedienen.", "correct": ["B", "C"], "cat": "Barotrauma"}, {"id": 116, "exam": "najaar 2024", "nr": 21, "q": "Bij apneu-oefeningen in het zwembad zie je duikers vaak enkele minuten diep in- en uitademen (hyperventileren). Welke bewering(en) is/zijn juist hieromtrent?", "a": "Zo stellen ze hun ademprikkel uit.", "b": "Hierdoor kunnen ze plots het bewustzijn verliezen tijdens de oefening.", "c": "Zo bouwen ze een grote zuurstofvoorraad op in hun longen.", "d": "Tijdens het hyperventileren kunnen ze duizelig worden.", "correct": ["A", "B", "D"], "cat": "Vrijduik"}, {"id": 117, "exam": "najaar 2024", "nr": 22, "q": "Zeeziekte:", "a": "Maakt deel uit van kinetose of bewegingsziekte.", "b": "Ontstaat omdat de hersenen tegenstrijdige informatie krijgen van verschillende zintuigen.", "c": "De ogen spelen ook een rol.", "d": "Best nuchter inschepen.", "correct": ["A", "B", "C"], "cat": "Reisapotheek"}, {"id": 118, "exam": "najaar 2024", "nr": 23, "q": "Je duikmaat is slachtoffer van een duikongeval. Hij is goed bewust en ademt normaal. Hij heeft 100% zuurstof nodig en moet vervoerd worden naar een ziekenhuis. De totale evacuatietijd wordt geschat op 2 uur. Welke zuurstoffles(sen), gecomprimeerd op 200 bar, volstaat/volstaan voor dit transport?", "a": "Fles van 2 liter.", "b": "Fles van 6 liter.", "c": "Fles van 10 liter.", "d": "Fles van 15 liter.", "correct": ["C", "D"], "cat": "EHBO"}, {"id": 119, "exam": "najaar 2024", "nr": 24, "q": "Tijdens de BBQ na de duik krijgt je buddy kokend water over zijn arm. Er ontstaat een zwart letsel zonder pijngevoel.", "a": "Dit is waarschijnlijk een tweedegraads brandwonde.", "b": "De wonde moet gedurende 20 minuten gespoeld worden met lauw water.", "c": "Je smeert de wonde in met Flammazine® of Flamigel® (zalf voor brandwonden).", "d": "Je bedekt de wonde met een proper driehoeksverband en verwijst je buddy zo snel mogelijk door naar het ziekenhuis.", "correct": ["B", "D"], "cat": "EHBO"}, {"id": 120, "exam": "najaar 2024", "nr": 25, "q": "Hoofdpijn na een duik kan ontstaan door:", "a": "skip-breathing;", "b": "zuurstofvergiftiging;", "c": "CO2-retentie;", "d": "te spannende duikkap of duikbril.", "correct": ["A", "C", "D"], "cat": "Gasintoxicaties"}, {"id": 121, "exam": "najaar 2024", "nr": 26, "q": "Welke beweringen met betrekking tot decompressieziekte zijn juist?", "a": "De symptomen treden meestal op binnen het uur na de duik.", "b": "Symptomen die optreden meer dan 6 uur na de duik zijn niet te wijten aan decompressieziekte.", "c": "Kan optreden bij correct gebruik van de duikcomputer.", "d": "Bij lichte symptomen mag gewacht worden met behandelen.", "correct": ["A", "C"], "cat": "Decompressie ongevallen"}, {"id": 122, "exam": "najaar 2024", "nr": 27, "q": "Na de duik valt je buddy met blote handen voorover in de oesters. Er ontstaat een bloedende wonde op de handpalm. Wat doe je?", "a": "Je reinigt eerst je eigen handen en gebruikt wegwerphandschoenen indien die beschikbaar zijn.", "b": "Je legt een knevel aan ter hoogte van de elleboog om het bloeden te stoppen.", "c": "Je reinigt de wonde grondig en verwijdert vreemd materiaal.", "d": "Je ontsmet de wonde met ether.", "correct": ["A", "C"], "cat": "EHBO"}, {"id": 123, "exam": "najaar 2024", "nr": 28, "q": "Een duiker komt je na een duik van 45 min met een maximale diepte van 15 m vertellen dat hij/zij zich bij het opstijgen licht kortademig voelde. Er deden zich geen incidenten voor tijdens de duik. Waaraan moet je in de eerste plaats denken? (1 antwoord)", "a": "Een beginnende longontsteking.", "b": "Immersielongoedeem.", "c": "Een licht decompressieongeval.", "d": "Slechte algemene conditie.", "correct": ["B"], "cat": "Immersie longoedeem"}, {"id": 124, "exam": "najaar 2024", "nr": 29, "q": "Duikers die voor het eerst naar -40 m gaan met lucht moeten gewaarschuwd worden voor: (1 antwoord)", "a": "een hijgtoestand;", "b": "een stikstofnarcose;", "c": "een hyperventilatie;", "d": "een zuurstofvergiftiging.", "correct": ["B"], "cat": "Gasintoxicaties"}, {"id": 125, "exam": "najaar 2024", "nr": 30, "q": "De samenstelling van het ingeademde gas uit een duikfles gevuld met lucht:", "a": "21 % zuurstof, 79 % stikstof;", "b": "79 % zuurstof, 21 % stikstof;", "c": "is afhankelijk van de diepte;", "d": "is afhankelijk van de inspanning die je levert onder water.", "correct": ["A"], "cat": "Gasintoxicaties"}, {"id": 126, "exam": "najaar 2024", "nr": 31, "q": "Decompressieziekte. Waarom geef je zuurstof?", "a": "Om de bloodshift te bestrijden.", "b": "Om de CO2-afvoer uit het lichaam te bevorderen.", "c": "Om de N2-afvoer uit het lichaam te bevorderen.", "d": "Om zuurstoftekort in de weefsels te bestrijden.", "correct": ["C", "D"], "cat": "Decompressie ongevallen"}, {"id": 127, "exam": "najaar 2024", "nr": 32, "q": "Duiken met nitrox vermindert het risico op decompressieziekte op voorwaarde dat:", "a": "de duikcomputer op lucht blijft staan;", "b": "het percentage zuurstof minstens 32% bedraagt;", "c": "het om een successieve duik gaat;", "d": "je buddy ook met nitrox duikt.", "correct": ["A"], "cat": "Decompressie ongevallen"}, {"id": 128, "exam": "voorjaar 2025", "nr": 1, "q": "Gehoorvermindering na een duik kan het gevolg zijn van:", "a": "een barotrauma van het binnenoor;", "b": "een barotrauma van het middenoor;", "c": "een barotrauma van de voorhoofdssinus;", "d": "een prop oorsmeer die de gehoorgang verstopt.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 129, "exam": "voorjaar 2025", "nr": 2, "q": "Bij het te water gaan glijdt een duiker van de dijk en heeft hevige pijn aan de rechter enkel. Wat moet je doen?", "a": "De enkel lokaal afkoelen.", "b": "De enkel lokaal opwarmen.", "c": "Een licht compressief verband aanbrengen rond de enkel.", "d": "Hoogstand van de enkel.", "correct": ["A", "C", "D"], "cat": "EHBO"}, {"id": 130, "exam": "voorjaar 2025", "nr": 3, "q": "Een duiker klaagt van een hese stem na een duik. Welke bewering(en) is (zijn) juist?", "a": "Dit is het gevolg van te droge ademlucht en vergt geen verdere behandeling.", "b": "Dit kan wijzen op een longoverdruk.", "c": "Dit kan wijzen op een barotrauma van een sinus.", "d": "De hulpdiensten moeten gebeld worden.", "correct": ["B", "D"], "cat": "Barotrauma"}, {"id": 131, "exam": "voorjaar 2025", "nr": 4, "q": "Duikers die voor het eerst naar een diepte van 40 m gaan met lucht moeten gewaarschuwd worden voor: (1 antwoord)", "a": "een CO2-narcose;", "b": "een stikstofnarcose;", "c": "hypocapnie;", "d": "een zuurstofvergiftiging.", "correct": ["B"], "cat": "Gasintoxicaties"}, {"id": 132, "exam": "voorjaar 2025", "nr": 5, "q": "Een slachtoffer dat gered wordt na een verdrinking in een zwembad, terug goed bewust is en goed ademt moet toch steeds naar een ziekenhuis gebracht worden om volgende reden(en):", "a": "het slachtoffer kan onverwacht opnieuw het bewustzijn verliezen;", "b": "de longen kunnen aangetast zijn door het water;", "c": "na een verdrinking is het hart tijdelijk verzwakt;", "d": "het bloed moet onderzocht worden op chloorvergiftiging.", "correct": ["B"], "cat": "Verdrinking"}, {"id": 133, "exam": "voorjaar 2025", "nr": 6, "q": "Welke symptomen kunnen duiden op een sinusbarotrauma?", "a": "Hoofdpijn en bloed in het neusslijm.", "b": "Misselijkheid en braken.", "c": "Pijn in de borst en kortademigheid.", "d": "Gevoelloosheid in de vingers.", "correct": ["A"], "cat": "Barotrauma"}, {"id": 134, "exam": "voorjaar 2025", "nr": 7, "q": "Duiken in koud water. Welke beweringen zijn juist?", "a": "Het eerste symptoom van onderkoeling zijn hartritmestoornissen.", "b": "Men verliest vooral warmte door het inademen van het koude ademgas.", "c": "Een nat duikpak verliest zijn isolerende waarde bij toenemende diepte.", "d": "Het verhoogt het risico op decompressieziekte.", "correct": ["C", "D"], "cat": "Effecten koude"}, {"id": 135, "exam": "voorjaar 2025", "nr": 8, "q": "Vrijwillig hyperventileren voor een apneu:", "a": "verhoogt het zuurstofniveau in bloed en longen;", "b": "verlaagt het CO2-niveau in bloed en longen;", "c": "wordt veel toegepast maar is niet zonder gevaar;", "d": "kan je duizelig maken.", "correct": ["B", "C", "D"], "cat": "Vrijduik"}, {"id": 136, "exam": "voorjaar 2025", "nr": 9, "q": "Welke bewering(en) is/zijn correct met betrekking tot de uitwendige gehoorgang?", "a": "Een ontsteking van de uitwendige gehoorgang kan pijnlijk zijn.", "b": "Een ontsteking van de uitwendige gehoorgang treedt meestal op na meerdere dagen duiken.", "c": "Zure druppels (azijnzuur) helpen preventief bij een uitwendige gehoorgangontsteking.", "d": "De oren na het duiken extra spoelen met zout water werkt preventief.", "correct": ["A", "B", "C"], "cat": "Barotrauma"}, {"id": 137, "exam": "voorjaar 2025", "nr": 10, "q": "Op een duikcruise in tropisch water was er gisterenavond een feestje. Je buddy staat deze morgen op met hoofdpijn. De eerste duik is een wrakduik naar 35 m. Welke raad geef je?", "a": "Water drinken en de duik niet uitvoeren.", "b": "Een pijnstiller nemen en de duik uitvoeren.", "c": "Water drinken en de duik uitvoeren.", "d": "Koffie drinken en de duik uitvoeren.", "correct": ["A"], "cat": "Reisapotheek"}, {"id": 138, "exam": "voorjaar 2025", "nr": 11, "q": "Tijdens het duiken neemt de ademarbeid toe. Waaraan is dit toe te schrijven?", "a": "De verhoogde partiële zuurstofdruk.", "b": "De bloodshift.", "c": "De verhoogde dichtheid van het ademmengsel.", "d": "De afname van de dode ruimte.", "correct": ["B", "C"], "cat": "Gasintoxicaties"}, {"id": 139, "exam": "voorjaar 2025", "nr": 12, "q": "Welke factoren verhogen het risico op een decompressieziekte?", "a": "Leeftijd.", "b": "Duiken dieper dan 30 m.", "c": "Meerdaagse duikreizen.", "d": "Duiken vanaf een boot.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 140, "exam": "voorjaar 2025", "nr": 13, "q": "Een duiker met een paraplegie als gevolg van een duikongeval:", "a": "kan beide benen niet meer bewegen;", "b": "kan linkerarm en linkerbeen of rechterarm en rechterbeen niet meer bewegen;", "c": "is meestal nog goed bewust;", "d": "kan problemen hebben om te plassen.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 141, "exam": "voorjaar 2025", "nr": 14, "q": "Voorafgaand aan een duikuitstap met de club moet je als Duiker-Hulpverlener volgende zaken controleren:", "a": "de EHBO-kit is mee;", "b": "er is een zuurstoffles mee (2 l op 200 bar is genoeg);", "c": "er is een zuurstoffles mee (minstens 6 l op 200 bar);", "d": "er is water mee.", "correct": ["A", "C", "D"], "cat": "EHBO"}, {"id": 142, "exam": "voorjaar 2025", "nr": 15, "q": "Welke bewering(en) in verband met een PFO (Patent Foramen Ovale) van het hart is/zijn juist?", "a": "Een PFO verhoogt de kans op decompressieziekte.", "b": "Huidsymptomen (marmerhuid – cutis marmorata) ten gevolge van decompressieziekte komen vaker voor bij duikers met een PFO.", "c": "Een PFO dient steeds operatief gesloten te worden na een decompressieziekte.", "d": "Meer dan een kwart van de bevolking (dus ook duikers) heeft een PFO.", "correct": ["A", "B", "D"], "cat": "Decompressie ongevallen"}, {"id": 143, "exam": "voorjaar 2025", "nr": 16, "q": "Welke bewering(en) is/zijn juist met betrekking tot verwondingen door mariene dieren?", "a": "Een verwonding door mariene dieren is altijd te beschouwen als besmet.", "b": "Een verwonding door mariene dieren vereist altijd doorverwijzing naar een arts of ziekenhuis.", "c": "Pas de juiste wondbehandeling toe binnen de 2 uur.", "d": "Gebruik ether om aanwezige bacteriën te doden.", "correct": ["A", "C"], "cat": "Gevaarlijke zeedieren"}, {"id": 144, "exam": "voorjaar 2025", "nr": 17, "q": "Decompressieziekte kan veroorzaakt worden door:", "a": "stikstofbellen;", "b": "luchtbellen;", "c": "CO2-bellen;", "d": "heliumbellen.", "correct": ["A", "D"], "cat": "Decompressie ongevallen"}, {"id": 145, "exam": "voorjaar 2025", "nr": 18, "q": "Een duiker komt boven en vermeldt duizelig geweest te zijn tijdens het stijgen. Na de duik zijn er geen problemen meer.", "a": "Het gaat waarschijnlijk om een alternobaar vertigo.", "b": "Het gaat waarschijnlijk om een binnenoorbarotrauma.", "c": "Het gaat waarschijnlijk om een sinusbarotrauma.", "d": "De duiker onmiddellijk naar een spoedgevallendienst sturen.", "correct": ["A"], "cat": "Barotrauma"}, {"id": 146, "exam": "voorjaar 2025", "nr": 19, "q": "Bij het gebruik van nitrox moet de duiker opletten voor:", "a": "chronische zuurstofvergiftiging als hij/zij te lang duikt;", "b": "snellere afkoeling;", "c": "acute zuurstofvergiftiging als hij/zij te diep gaat;", "d": "verhoogd gevaar op decompressieziekte als de duikcomputer op lucht blijft staan.", "correct": ["C"], "cat": "Gasintoxicaties"}, {"id": 147, "exam": "voorjaar 2025", "nr": 20, "q": "Longoverdruk. Wanneer moet je eraan denken?", "a": "Bij een duiker bij wie één kant van de borstkas niet opgaat bij het ademen.", "b": "Bij een duiker die bewusteloos uit het water wordt gehaald.", "c": "Bij een duiker met onderhuidse bloedingen rond de ogen.", "d": "Bij een duiker die na een stijgproef kortademig bovenkomt.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 148, "exam": "voorjaar 2025", "nr": 21, "q": "Een decompressieziekte:", "a": "kan het gevolg zijn van het verkeerd gebruik van de duikcomputer;", "b": "kan optreden bij correct gebruik van de duikcomputer;", "c": "begint steeds onmiddellijk na de duik;", "d": "bij lichte symptomen mag gewacht worden met behandelen.", "correct": ["A", "B"], "cat": "Decompressie ongevallen"}, {"id": 149, "exam": "voorjaar 2025", "nr": 22, "q": "Normobare zuurstof:", "a": "is een brandbaar gas;", "b": "is niet brandbaar maar wel brand bevorderend;", "c": "mag niet langer dan 2 uur ononderbroken toegediend worden;", "d": "mag bij ieder duikongeval toegediend worden.", "correct": ["B", "D"], "cat": "EHBO"}, {"id": 150, "exam": "voorjaar 2025", "nr": 23, "q": "Welke bewering(en) is/zijn juist?", "a": "Longoverdruk kan al optreden tijdens stijgoefeningen in het zwembad.", "b": "Duikers met onvoldoende gecontroleerd astma lopen een hoger risico op longoverdruk.", "c": "Vrijduikers kunnen evengoed een longoverdruk oplopen als ze te snel stijgen.", "d": "Longoverdruk en longsqueeze zijn hetzelfde.", "correct": ["A", "B"], "cat": "Barotrauma"}, {"id": 151, "exam": "voorjaar 2025", "nr": 24, "q": "Welke beweringen over immersielongoedeem zijn correct?", "a": "Een slecht onderhouden ademautomaat kan bijdragen tot het ontstaan van immersielongoedeem.", "b": "Eens de symptomen verdwenen zijn mag men opnieuw duiken.", "c": "Niet alleen duikers, maar ook zwemmers kunnen het slachtoffer zijn van immersielongoedeem.", "d": "Immersielongoedeem en hijgtoestand (CO2-vergiftiging) zijn hetzelfde.", "correct": ["A", "C"], "cat": "Immersie longoedeem"}, {"id": 152, "exam": "voorjaar 2025", "nr": 25, "q": "Beweringen met betrekking tot de longblaasjes … Wat is juist?", "a": "Er zijn ongeveer 1.000 longblaasjes per long.", "b": "De longblaasjes dienen voor uitwisseling van CO2 en O2.", "c": "In de longblaasjes mengt de lucht zich met het bloed.", "d": "De surfactant zorgt ervoor dat de longblaasjes niet dichtklappen.", "correct": ["B", "D"], "cat": "Gasintoxicaties"}, {"id": 153, "exam": "voorjaar 2025", "nr": 26, "q": "Welke tekenen kunnen wijzen op decompressieziekte?", "a": "Tintelingen in een been.", "b": "Plots optredende rugpijn.", "c": "Doofheid aan één oor.", "d": "Bloedneus.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 154, "exam": "voorjaar 2025", "nr": 27, "q": "Wat is nuttig om reizigersdiarree te vermijden tijdens een verblijf in exotische landen?", "a": "Enkel verse groenten en fruit eten.", "b": "Enkel water uit flessen drinken.", "c": "Toepassen van goede handhygiëne.", "d": "De website van het Instituut voor Tropische Geneeskunde aandachtig lezen.", "correct": ["B", "C", "D"], "cat": "Reisapotheek"}, {"id": 155, "exam": "voorjaar 2025", "nr": 28, "q": "Een duiker heeft na een val een groot stuk glas in zijn been. Welke handeling(en) moet(en) er worden gesteld?", "a": "Verwijs de duiker onmiddellijk door naar gespecialiseerde hulp, zoals (huis)arts of spoedgevallendienst;", "b": "Laat het glas ter plaatse zitten, controleer de bloeding en breng een correct verband aan.", "c": "Verwijder het glas, controleer de bloeding en breng een correct verband aan.", "d": "Kijk na of er geen andere letsels zijn.", "correct": ["A", "B", "D"], "cat": "EHBO"}, {"id": 156, "exam": "voorjaar 2025", "nr": 29, "q": "Een zwemmer wordt onderkoeld uit het water gehaald. Als DHV kan je hulp bieden. Wat doe je?", "a": "Je warmt eerst de handen en de voeten op want niets is zo vervelend als ijskoude handen en voeten.", "b": "Je wikkelt hem/haar helemaal in een isolatiedeken met de gouden zijde aan de buitenkant.", "c": "Je mag hem/haar een warme drank geven indien er geen verslikkingsgevaar is.", "d": "Zolang hij/zij bij bewustzijn is moet je niets bijzonders ondernemen.", "correct": ["B", "C"], "cat": "Effecten koude"}, {"id": 157, "exam": "voorjaar 2025", "nr": 30, "q": "Eerste hulp bij decompressieziekte. Welke bewering(en) is (zijn) juist?", "a": "Duikers die met nitrox gedoken hebben, geef je best geen normobare zuurstof om zuurstofvergiftiging te vermijden.", "b": "Duikers die decompressiestops gemist hebben stuur je terug in het water om de stops alsnog verdubbeld uit te voeren.", "c": "Wanneer de klachten van decompressieziekte binnen de 10 minuten verdwenen zijn door het inademen van normobare zuurstof, is een alarmering van de hulpdiensten niet nodig.", "d": "Wanneer je over een beperkte zuurstofvoorraad beschikt, is het beter om een korte periode een hoge dosis zuurstof te geven, dan een langere periode een lagere dosis.", "correct": ["D"], "cat": "Decompressie ongevallen"}, {"id": 158, "exam": "voorjaar 2025", "nr": 31, "q": "Een duiker wordt aan de kant gebracht en kan niet meer op zijn benen staan. Wat zijn je taken als Duiker-Hulpverlener?", "a": "De hulpdiensten activeren.", "b": "De vitale functies controleren.", "c": "Zuurstof toedienen.", "d": "Even op adem laten komen.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 159, "exam": "voorjaar 2025", "nr": 32, "q": "Een duiker komt kortademig en hoestend uit het water. Je weet niet wat er onder water gebeurd is. Wat moet je doen?", "a": "Zuurstof geven.", "b": "Laten drinken.", "c": "De hulpdiensten activeren.", "d": "Blijven observeren en geruststellen.", "correct": ["A", "C", "D"], "cat": "EHBO"}, {"id": 160, "exam": "najaar 2025", "nr": 1, "q": "Uitgeademde lucht bevat:", "a": "meer CO2 dan zuurstof;", "b": "enkel stikstof;", "c": "meer zuurstof dan CO2;", "d": "geen zuurstof.", "correct": ["C"], "cat": "Gasintoxicaties"}, {"id": 161, "exam": "najaar 2025", "nr": 2, "q": "Ademen doorheen een snorkel of tuba:", "a": "verhoogt de dode ruimte;", "b": "kan leiden tot een verhoogd CO2 gehalte in bloed en longen;", "c": "is een van de oorzaken van de bloodshift;", "d": "verhoogt de totale longinhoud.", "correct": ["A", "B"], "cat": "Gasintoxicaties"}, {"id": 162, "exam": "najaar 2025", "nr": 3, "q": "Het oor: wat is juist?", "a": "Het evenwichtsorgaan maakt deel uit van het binnenoor.", "b": "Het middenoor is gevuld met lucht, het binnenoor met vloeistof.", "c": "In het middenoor wordt het geluid overgedragen aan de gehoorzenuw.", "d": "De buis van Eustachius zorgt voor drukevenwicht tussen middenoor en binnenoor.", "correct": ["A", "B"], "cat": "Barotrauma"}, {"id": 163, "exam": "najaar 2025", "nr": 4, "q": "Tijdens oefeningen met duikfles in het zwembad (maximale diepte 3 m) kunnen volgende ongevallen voorkomen:", "a": "longoverdruk;", "b": "bewustzijnsverlies;", "c": "stuipen door zuurstofvergiftiging;", "d": "decompressieziekte.", "correct": ["A", "B"], "cat": "Barotrauma"}, {"id": 164, "exam": "najaar 2025", "nr": 5, "q": "Een duiker komt kortademig boven en wordt naar de kant gebracht. Wat doe je?", "a": "Water laten drinken.", "b": "Zuurstof geven.", "c": "De hulpdiensten onmiddellijk bellen.", "d": "De hulpdiensten bellen als het na een kwartier niet beter is.", "correct": ["B", "C"], "cat": "EHBO"}, {"id": 165, "exam": "najaar 2025", "nr": 6, "q": "Hoe ontstaat decompressieziekte?", "a": "Door een opstapeling van CO2 in de weefsels.", "b": "Door een verstoorde bloedcirculatie ten gevolge van bloedklonters.", "c": "Door de aanwezigheid van stikstofbellen.", "d": "Door de aanwezigheid van luchtbellen.", "correct": ["C"], "cat": "Decompressie ongevallen"}, {"id": 166, "exam": "najaar 2025", "nr": 7, "q": "Welke bewering(en) met betrekking tot decompressieziekte is (zijn) juist?", "a": "De symptomen treden meestal op binnen het uur na de duik.", "b": "Symptomen die optreden meer dan 6 uur na de duik zijn waarschijnlijk niet te wijten aan decompressieziekte.", "c": "Decompressieziekte kan optreden ondanks het respecteren van stijgsnelheid en (eventuele) trappen.", "d": "Decompressieziekte vereist altijd medisch advies.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 167, "exam": "najaar 2025", "nr": 8, "q": "Welke uitspraken met betrekking tot decompressieziekte zijn juist?", "a": "Decompressieziekte uit zich bij sportduikers meestal ter hoogte van het zenuwstelsel.", "b": "Hoofdpijn is een typisch teken van een decompressieziekte.", "c": "Decompressieziekte kan leiden tot problemen met urineren.", "d": "Decompressieziekte geeft soms ongecontroleerde neusbloedingen.", "correct": ["A", "C"], "cat": "Decompressie ongevallen"}, {"id": 168, "exam": "najaar 2025", "nr": 9, "q": "Welke factoren verhogen het risico op een decompressieziekte?", "a": "Duiken dieper dan 30 m.", "b": "Decompressieduiken.", "c": "Meerdaagse duikreizen.", "d": "Duiken in zout water.", "correct": ["A", "B", "C"], "cat": "Decompressie ongevallen"}, {"id": 169, "exam": "najaar 2025", "nr": 10, "q": "Wat kan een teken zijn van een decompressieziekte?", "a": "Tintelingen in een been.", "b": "Zweten.", "c": "Rugpijn.", "d": "Gevoelloosheid in beide benen.", "correct": ["A", "C", "D"], "cat": "Decompressie ongevallen"}, {"id": 170, "exam": "najaar 2025", "nr": 11, "q": "Behandeling van decompressieziekte. Welke bewering(en) is/zijn juist?", "a": "Je kan nooit verkeerd doen met het geven van normobare zuurstof.", "b": "Bij een beperkte voorraad zuurstof geef je beter een hoge dosis zuurstof in korte tijd, dan een lagere dosis gedurende langere tijd.", "c": "Terug naar halve diepte duiken, is een mogelijk alternatief als je geen zuurstof hebt.", "d": "Bij gebrek aan zuurstof is het toedienen van NITROX een alternatief.", "correct": ["A", "B", "D"], "cat": "Decompressie ongevallen"}, {"id": 171, "exam": "najaar 2025", "nr": 12, "q": "Bij het te water gaan, glijdt een duiker van de dijk. Hij heeft hevige pijn aan de rechter enkel. Welke handelingen zijn juist?", "a": "Je zorgt ervoor dat hij/zij niet meer steunt op de enkel.", "b": "Je zorgt voor lokale warmte ter hoogte van de enkel.", "c": "Je probeert de duikbotjes te verwijderen, ook al is dit zeer pijnlijk.", "d": "Je brengt een licht compressief verband aan rond de enkel.", "correct": ["A", "D"], "cat": "EHBO"}, {"id": 172, "exam": "najaar 2025", "nr": 13, "q": "Na de duik valt je buddy met blote handen voorover in de oesters. Er ontstaat een bloedende wonde op de handpalm. Wat doe je?", "a": "Als je handen proper lijken, hoef je ze niet te wassen.", "b": "Je probeert de bloeding te stoppen door rechtstreekse druk uit te oefenen op de wonde, liefst met een kompres.", "c": "Je reinigt de wonde grondig en verwijdert vreemd materiaal.", "d": "Je ontsmet de wonde met ether.", "correct": ["B", "C"], "cat": "EHBO"}, {"id": 173, "exam": "najaar 2025", "nr": 14, "q": "Bij het vinzwemmen in het zwembad krijgt iemand hevige krampen in de kuit. Wat doe je?", "a": "Je geeft de raad verder te zwemmen op een rustiger tempo.", "b": "Je stretcht de kuitspier gedurende 10 tot 15 seconden.", "c": "Je legt iets warms op de kuit.", "d": "Je legt ijsblokjes op de kuit.", "correct": ["B", "C"], "cat": "EHBO"}, {"id": 174, "exam": "najaar 2025", "nr": 15, "q": "Na contact met stekende vissen:", "a": "leg je het aangetaste lidmaat in hoogstand;", "b": "is er geen risico op infectie;", "c": "laat je de stekel ter plaatse;", "d": "pas je zo snel mogelijk de 'Heet Water Onderdompelingstechniek' toe.", "correct": ["A", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 175, "exam": "najaar 2025", "nr": 16, "q": "Welke bewering(en) is/zijn juist met betrekking tot verzorging van wonden door neteldieren?", "a": "Na contact met een neteldier dien je het aangetaste lidmaat goed te bewegen.", "b": "Je spoelt de wonde met zoet water.", "c": "Je spoelt de wonde met zout water.", "d": "Na contact met sommige neteldieren, zoals vuurkoraal en kwallen, kan je de 'Azijn Behandelingstechniek' toepassen.", "correct": ["C", "D"], "cat": "Gevaarlijke zeedieren"}, {"id": 176, "exam": "najaar 2025", "nr": 17, "q": "Een zwemmer wordt onderkoeld uit het water gehaald. Als DHV kan je hulp bieden. Wat doe je?", "a": "Je wikkelt hem/haar in een isolatiedeken.", "b": "Je laat hem/haar zo snel mogelijk een hete douche nemen.", "c": "Zolang hij/zij bij bewustzijn is, moet je niets bijzonders ondernemen.", "d": "Je mag warme drank geven indien er geen verslikkingsgevaar is.", "correct": ["A", "D"], "cat": "Effecten koude"}, {"id": 177, "exam": "najaar 2025", "nr": 18, "q": "Welke beweringen zijn juist?", "a": "Warmteverlies in water is ongeveer 25 keer groter dan in lucht.", "b": "Bij een kerntemperatuur van 33°C stopt het rillen.", "c": "Flink bewegen in het water helpt om het warm te blijven hebben.", "d": "De beste manier om koude handen op te warmen, is ze in heet water steken.", "correct": ["A", "B"], "cat": "Effecten koude"}, {"id": 178, "exam": "najaar 2025", "nr": 19, "q": "De eerste hulp bij een duiker die aan de oppervlakte komt met een vermoeden van immersie longoedeem:", "a": "Begint al in het water door de duiker in horizontale positie te brengen.", "b": "Je moet de duiker zo snel mogelijk uit het water halen.", "c": "Je moet de duiker een extra veiligheidsstop laten maken.", "d": "Je dient geen zuurstof toe, want dit kan toxisch zijn bij immersie longoedeem.", "correct": ["A", "B"], "cat": "Immersie longoedeem"}, {"id": 179, "exam": "najaar 2025", "nr": 20, "q": "Wat zijn risicofactoren op het ontstaan van immersie longoedeem?", "a": "Veel water drinken voor de duik.", "b": "Duiken in koud water.", "c": "Zware inspanning tijdens het duiken.", "d": "Leeftijd.", "correct": ["A", "B", "C", "D"], "cat": "Immersie longoedeem"}, {"id": 180, "exam": "najaar 2025", "nr": 21, "q": "Longoverdruk bij duiken met lucht kan ontstaan door:", "a": "normaal te stijgen (10 m/min) zonder voldoende uit te ademen;", "b": "een paniekstijging;", "c": "een hijgtoestand;", "d": "het omhoog brengen van een bewusteloos slachtoffer.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 181, "exam": "najaar 2025", "nr": 22, "q": "Longoverdruk. Wanneer moet je eraan denken?", "a": "Bij een duiker met ademhalingsmoeilijkheden.", "b": "Bij een duiker die bewusteloos uit het water wordt gehaald.", "c": "Bij een duiker met onderhuidse bloedingen rond de ogen.", "d": "Bij een duiker met een hese stem na de duik.", "correct": ["A", "B", "D"], "cat": "Barotrauma"}, {"id": 182, "exam": "najaar 2025", "nr": 23, "q": "Een klaplong. Welke stelling(en) is (zijn) correct?", "a": "Is een decompressieziekte van de longen.", "b": "Kun je vermoeden als de borstkas niet symmetrisch beweegt bij het ademen.", "c": "Er is lucht tussen beide longvliezen (pleurabladen) terechtgekomen.", "d": "Is een gevaarlijke toestand die activatie van de hulpdiensten vereist.", "correct": ["B", "C", "D"], "cat": "Barotrauma"}, {"id": 183, "exam": "najaar 2025", "nr": 24, "q": "Na een trommelvliesscheur krijgt een duiker tijdelijk duikverbod. Welke beweringen zijn juist?", "a": "Duiken met een trommelvliesscheur kan leiden tot infectie van het middenoor.", "b": "Duiken met een trommelvliesscheur geeft risico op evenwichtsstoornissen.", "c": "Er is duikverbod tot heling van de scheur, vastgesteld door een arts.", "d": "Er is duikverbod gedurende drie dagen.", "correct": ["A", "B", "C"], "cat": "Barotrauma"}, {"id": 184, "exam": "najaar 2025", "nr": 25, "q": "Een duiker ondervindt tijdens het dalen moeite met het klaren van de oren. Na een krachtige Valsalva lukt het dan toch. Hij voelt zich duizelig maar beslist verder te duiken. De duik gaat naar -25 m voor 30 min. Na de duik heeft hij last van oorsuizen rechts en blijft de duizeligheid in lichte mate aanwezig. Wat is de meest waarschijnlijke oorzaak?", "a": "Migraineaanval.", "b": "Binnenoorbarotrauma.", "c": "Longoverdruk.", "d": "Bends.", "correct": ["B"], "cat": "Barotrauma"}, {"id": 185, "exam": "najaar 2025", "nr": 26, "q": "De uitwendige gehoorgang. Welke stelling(en) is (zijn) correct?", "a": "Na meerdere dagen duiken kan een pijnlijke ontsteking van de uitwendige gehoorgang optreden (otitis externa).", "b": "Bij een ontsteking van de uitwendige gehoorgang treedt vertigo (draaiduizeligheid) op.", "c": "Bij hevige pijn is het verstandig één of meerdere duiken over te slaan.", "d": "Na de duik spoelen en indruppelen van zure druppels helpen bij een ontsteking van de uitwendige gehoorgang.", "correct": ["A", "C", "D"], "cat": "Barotrauma"}, {"id": 186, "exam": "najaar 2025", "nr": 27, "q": "Gehoorvermindering na een duik kan het gevolg zijn van:", "a": "een decompressieziekte;", "b": "een barotrauma van het middenoor;", "c": "een prop oorsmeer die de gehoorgang verstopt;", "d": "een doorgemaakte stikstofnarcose.", "correct": ["A", "B", "C"], "cat": "Barotrauma"}, {"id": 187, "exam": "najaar 2025", "nr": 28, "q": "Stikstofnarcose (dieptedronkenschap):", "a": "kan een gevoel van paniek geven;", "b": "verdwijnt bij een geoefende duiker;", "c": "kan een gelukzalig gevoel geven;", "d": "belet helder te denken.", "correct": ["A", "C", "D"], "cat": "Gasintoxicaties"}, {"id": 188, "exam": "najaar 2025", "nr": 29, "q": "Het gevaar van een hijgtoestand bestaat erin dat:", "a": "het kan leiden tot paniek;", "b": "het een chronische zuurstofintoxicatie kan veroorzaken;", "c": "het bewusteloosheid kan veroorzaken;", "d": "het kan overgaan naar een longoverdruk.", "correct": ["A", "C"], "cat": "Gasintoxicaties"}, {"id": 189, "exam": "najaar 2025", "nr": 30, "q": "Acute zuurstofvergiftiging:", "a": "De symptomen lijken erg op een stikstofvergiftiging.", "b": "Is een risico bij het gebruik van nitrox.", "c": "Is een risico bij het langdurig toedienen van normobare zuurstof.", "d": "Stuiptrekkingen kunnen plots optreden, zonder waarschuwingssignalen.", "correct": ["B", "D"], "cat": "Gasintoxicaties"}, {"id": 190, "exam": "najaar 2025", "nr": 31, "q": "Op het einde van een lange apneuoefening in het zwembad verliest iemand het bewustzijn. Het slachtoffer wordt snel op het droge gebracht. Na enkele beademingen wordt het slachtoffer terug bewust, ademt normaal en voelt zich OK. Wat moet je doen?", "a": "Zuurstof geven.", "b": "Naar huis laten gaan als ademhaling en bewustzijn normaal blijven.", "c": "De 112 bellen als de situatie weer verslechtert.", "d": "De 112 altijd bellen.", "correct": ["A", "D"], "cat": "Vrijduik"}, {"id": 191, "exam": "najaar 2025", "nr": 32, "q": "Bij apneuoefeningen in het zwembad zie je duikers vaak enkele minuten diep in- en uitademen (hyperventileren). Welke bewering(en) is/zijn juist hieromtrent?", "a": "Zo stellen ze hun ademprikkel uit.", "b": "Hierdoor kunnen ze plots het bewustzijn verliezen tijdens de oefening.", "c": "Zo bouwen ze een grote zuurstofvoorraad op in hun longen.", "d": "Tijdens het hyperventileren kunnen ze duizelig worden.", "correct": ["A", "B", "D"], "cat": "Vrijduik"}];
+const STORAGE_KEY = 'dhv_stats_v2';
+
+const CATEGORIES = [
+  'Barotrauma', 'Decompressie ongevallen', 'Gasintoxicaties', 'EHBO',
+  'Vrijduik', 'Immersie longoedeem', 'Effecten koude',
+  'Gevaarlijke zeedieren', 'Reisapotheek', 'Verdrinking', 'Mental coaching'
+];
+
+var CAT_COLORS = {
+  'Barotrauma':             { bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200' },
+  'Decompressie ongevallen':{ bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
+  'Gasintoxicaties':        { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200' },
+  'EHBO':                   { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  'Vrijduik':               { bg: 'bg-cyan-50',    text: 'text-cyan-700',    border: 'border-cyan-200' },
+  'Immersie longoedeem':    { bg: 'bg-pink-50',    text: 'text-pink-700',    border: 'border-pink-200' },
+  'Effecten koude':         { bg: 'bg-sky-50',     text: 'text-sky-700',     border: 'border-sky-200' },
+  'Gevaarlijke zeedieren':  { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
+  'Reisapotheek':           { bg: 'bg-lime-50',    text: 'text-lime-700',    border: 'border-lime-200' },
+  'Verdrinking':            { bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200' },
+  'Mental coaching':        { bg: 'bg-violet-50',  text: 'text-violet-700',  border: 'border-violet-200' }
+};
+
+var CAT_BAR_COLORS = {
+  'Barotrauma':             'bg-red-400',
+  'Decompressie ongevallen':'bg-purple-400',
+  'Gasintoxicaties':        'bg-orange-400',
+  'EHBO':                   'bg-emerald-400',
+  'Vrijduik':               'bg-cyan-400',
+  'Immersie longoedeem':    'bg-pink-400',
+  'Effecten koude':         'bg-sky-400',
+  'Gevaarlijke zeedieren':  'bg-amber-400',
+  'Reisapotheek':           'bg-lime-400',
+  'Verdrinking':            'bg-indigo-400',
+  'Mental coaching':        'bg-violet-400'
+};
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveStats(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+var stats = loadStats();
+var sessionCount = 0;
+var sessionCorrect = 0;
+var currentQ = null;
+var answered = false;
+var statsFilter = 'all';
+var statsCatFilter = null;
+var activeCatFilters = new Set(); // empty = all
+
+// ── Category filter bar ─────────────────────────────────────────────
+function renderCatFilterBar() {
+  var bar = document.getElementById('cat-filter-bar');
+  var html = '<button onclick="toggleCatFilter(null)" class="cat-f-btn px-2.5 py-1 rounded-full text-xs font-medium transition-colors ' +
+    (activeCatFilters.size === 0 ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200') + '">Alle</button>';
+  CATEGORIES.forEach(function(cat) {
+    var c = CAT_COLORS[cat];
+    var active = activeCatFilters.has(cat);
+    var cls = active
+      ? c.bg + ' ' + c.text + ' ring-1 ring-offset-1 ' + c.border.replace('border-','ring-')
+      : 'bg-gray-100 text-gray-500 hover:bg-gray-200';
+    html += '<button onclick="toggleCatFilter(\'' + cat + '\')" class="cat-f-btn px-2.5 py-1 rounded-full text-xs font-medium transition-colors ' + cls + '">' + cat + '</button>';
+  });
+  bar.innerHTML = html;
+}
+
+function toggleCatFilter(cat) {
+  if (cat === null) {
+    activeCatFilters.clear();
+  } else {
+    if (activeCatFilters.has(cat)) {
+      activeCatFilters.delete(cat);
+    } else {
+      activeCatFilters.add(cat);
+    }
+  }
+  renderCatFilterBar();
+  nextQuestion();
+}
+
+function getFilteredQuestions() {
+  if (activeCatFilters.size === 0) return QUESTIONS;
+  return QUESTIONS.filter(function(q) { return activeCatFilters.has(q.cat); });
+}
+
+// ── Weighted random selection ───────────────────────────────────────
+function pickQuestion() {
+  var pool = getFilteredQuestions();
+  if (pool.length === 0) pool = QUESTIONS;
+  var weights = pool.map(function(q) {
+    var s = stats[q.id];
+    if (!s || s.attempts === 0) return 2;
+    var wrong = s.attempts - s.correct;
+    return 1 + wrong * 3;
+  });
+  var total = weights.reduce(function(a, b) { return a + b; }, 0);
+  var r = Math.random() * total;
+  for (var i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
+}
+
+function renderQuestion(q) {
+  answered = false;
+  currentQ = q;
+
+  document.getElementById('q-exam-badge').textContent = q.exam + ' \u2022 Vraag ' + q.nr;
+
+  var catBadge = document.getElementById('q-cat-badge');
+  var cc = CAT_COLORS[q.cat] || { bg: 'bg-gray-50', text: 'text-gray-700' };
+  catBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full ' + cc.bg + ' ' + cc.text;
+  catBadge.textContent = q.cat;
+
+  var s = stats[q.id];
+  if (s && s.attempts > 0) {
+    var pct = Math.round(s.correct / s.attempts * 100);
+    document.getElementById('q-stats-badge').textContent =
+      '\u2713 ' + s.correct + '/' + s.attempts + ' (' + pct + '%)';
+  } else {
+    document.getElementById('q-stats-badge').textContent = 'Nog niet gezien';
+  }
+
+  document.getElementById('q-text').textContent = q.q;
+
+  var multi = q.correct.length > 1;
+  document.getElementById('q-hint').textContent = multi
+    ? '\u26A0\uFE0F Meerdere antwoorden mogelijk \u2014 selecteer alles wat van toepassing is.'
+    : 'Selecteer het juiste antwoord.';
+
+  var container = document.getElementById('options-container');
+  container.innerHTML = '';
+
+  ['a','b','c','d'].forEach(function(letter) {
+    if (!q[letter]) return;
+    var label = letter.toUpperCase();
+    var div = document.createElement('div');
+    div.className = 'option-btn flex items-start gap-3 p-3.5 rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 select-none';
+    div.dataset.letter = label;
+    div.onclick = function() { toggleOption(div, multi); };
+
+    var radius = multi ? 'md' : 'full';
+    var checkSvg = multi
+      ? '<svg class="hidden w-3 h-3 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5l-1 1 4 4 6-6z"/></svg>'
+      : '';
+
+    div.innerHTML =
+      '<div class="mt-0.5 w-5 h-5 rounded-' + radius + ' border-2 border-gray-300 flex-shrink-0 flex items-center justify-center option-indicator" data-letter="' + label + '">' +
+        checkSvg +
+      '</div>' +
+      '<div>' +
+        '<span class="font-semibold text-sm text-gray-500 mr-1">' + label + '.</span>' +
+        '<span class="text-sm text-gray-800">' + escapeHtml(q[letter]) + '</span>' +
+      '</div>';
+    container.appendChild(div);
+  });
+
+  document.getElementById('feedback').classList.add('hidden');
+  document.getElementById('btn-submit').classList.remove('hidden');
+  document.getElementById('btn-next').classList.add('hidden');
+
+  var card = document.getElementById('question-card');
+  card.classList.remove('fade-in');
+  void card.offsetWidth;
+  card.classList.add('fade-in');
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function toggleOption(div, multi) {
+  if (answered) return;
+  if (!multi) {
+    document.querySelectorAll('#options-container .option-btn').forEach(function(d) {
+      d.classList.remove('border-blue-500', 'bg-blue-50');
+      d.classList.add('border-gray-200');
+      var ind = d.querySelector('.option-indicator');
+      ind.classList.remove('border-blue-500', 'bg-blue-500');
+    });
+  }
+  var isSelected = div.classList.contains('border-blue-500');
+  if (isSelected && multi) {
+    div.classList.remove('border-blue-500', 'bg-blue-50');
+    div.classList.add('border-gray-200');
+    var ind = div.querySelector('.option-indicator');
+    ind.classList.remove('border-blue-500', 'bg-blue-500');
+    var check = ind.querySelector('svg');
+    if (check) check.classList.add('hidden');
+  } else {
+    div.classList.add('border-blue-500', 'bg-blue-50');
+    div.classList.remove('border-gray-200');
+    var ind2 = div.querySelector('.option-indicator');
+    ind2.classList.add('border-blue-500', 'bg-blue-500');
+    var check2 = ind2.querySelector('svg');
+    if (check2) check2.classList.remove('hidden');
+  }
+}
+
+function getSelected() {
+  var selected = [];
+  document.querySelectorAll('#options-container .option-btn').forEach(function(d) {
+    if (d.classList.contains('border-blue-500')) selected.push(d.dataset.letter);
+  });
+  return selected;
+}
+
+function submitAnswer() {
+  var selected = getSelected();
+  if (selected.length === 0) {
+    var card = document.getElementById('question-card');
+    card.classList.add('shake');
+    setTimeout(function() { card.classList.remove('shake'); }, 500);
+    return;
+  }
+
+  answered = true;
+  var correct = currentQ.correct.slice().sort();
+  var isCorrect = JSON.stringify(selected.slice().sort()) === JSON.stringify(correct);
+
+  if (!stats[currentQ.id]) stats[currentQ.id] = { attempts: 0, correct: 0 };
+  stats[currentQ.id].attempts++;
+  if (isCorrect) stats[currentQ.id].correct++;
+  saveStats(stats);
+
+  sessionCount++;
+  if (isCorrect) sessionCorrect++;
+  updateSessionBar();
+  revealOptions(selected, correct);
+
+  var fb = document.getElementById('feedback');
+  fb.classList.remove('hidden');
+  if (isCorrect) {
+    fb.className = 'mt-5 p-4 rounded-xl text-sm leading-relaxed bg-green-50 border border-green-200 text-green-800';
+    fb.innerHTML = '<span class="font-semibold">\u2705 Correct!</span> Goed gedaan.';
+  } else {
+    var correctHtml = correct.map(function(l) {
+      return '<strong>' + l + '</strong>: ' + escapeHtml(currentQ[l.toLowerCase()]);
+    }).join('<br>');
+    fb.className = 'mt-5 p-4 rounded-xl text-sm leading-relaxed bg-red-50 border border-red-200 text-red-800';
+    fb.innerHTML = '<span class="font-semibold">\u274C Fout.</span> Het juiste antwoord is:<br>' + correctHtml;
+  }
+
+  document.getElementById('btn-submit').classList.add('hidden');
+  document.getElementById('btn-next').classList.remove('hidden');
+  document.getElementById('btn-next').focus();
+}
+
+function revealOptions(selected, correct) {
+  document.querySelectorAll('#options-container .option-btn').forEach(function(d) {
+    d.classList.add('revealed');
+    d.classList.remove('hover:border-blue-300', 'hover:bg-blue-50/40');
+    var letter = d.dataset.letter;
+    var isCorr = correct.indexOf(letter) !== -1;
+    var wasSel = selected.indexOf(letter) !== -1;
+    d.classList.remove('border-blue-500', 'bg-blue-50', 'border-gray-200');
+    var ind = d.querySelector('.option-indicator');
+    ind.classList.remove('border-blue-500', 'bg-blue-500', 'border-gray-300');
+    var check = ind.querySelector('svg');
+    if (isCorr) {
+      d.classList.add('border-green-500', 'bg-green-50');
+      ind.classList.add('border-green-500', 'bg-green-500');
+      if (check) check.classList.remove('hidden');
+    } else if (wasSel) {
+      d.classList.add('border-red-400', 'bg-red-50');
+      ind.classList.add('border-red-400', 'bg-red-400');
+      if (check) check.classList.remove('hidden');
+    } else {
+      d.classList.add('border-gray-200', 'opacity-60');
+    }
+  });
+}
+
+function nextQuestion() {
+  renderQuestion(pickQuestion());
+}
+
+function updateSessionBar() {
+  document.getElementById('session-label').textContent = 'Sessie: ' + sessionCount + ' vragen';
+  var pct = sessionCount ? Math.round(sessionCorrect / sessionCount * 100) : 0;
+  document.getElementById('session-score').textContent = sessionCorrect + '/' + sessionCount + ' (' + pct + '%)';
+  var bar = document.getElementById('session-bar');
+  bar.style.width = pct + '%';
+  bar.className = 'h-1.5 rounded-full transition-all duration-500 ' +
+    (pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-blue-500');
+}
+
+// ── Stats view ──────────────────────────────────────────────────────
+// ── View switching ───────────────────────────────────────────────────
+var currentView = 'practice';
+
+function showView(view) {
+  currentView = view;
+  document.getElementById('view-practice').classList.toggle('hidden', view !== 'practice');
+  document.getElementById('view-stats').classList.toggle('hidden', view !== 'stats');
+  document.getElementById('view-exam-mode').classList.toggle('hidden', view !== 'exam-mode');
+
+  var navItems = [
+    { id: 'nav-practice', view: 'practice' },
+    { id: 'nav-exam-mode', view: 'exam-mode' },
+    { id: 'nav-stats', view: 'stats' }
+  ];
+  navItems.forEach(function(item) {
+    document.getElementById(item.id).className = 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ' +
+      (view === item.view ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100');
+  });
+
+  if (view === 'stats') renderStats();
+  if (view === 'exam-mode' && !examActive) renderExamStart();
+}
+
+function filterStats(f) {
+  statsFilter = f;
+  document.querySelectorAll('.stat-filter-btn').forEach(function(b) {
+    b.className = 'stat-filter-btn px-3 py-1 rounded-full text-sm font-medium ' +
+      (b.id === 'sf-' + f ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+  });
+  renderStatsList();
+}
+
+function renderStatsCatFilter() {
+  var bar = document.getElementById('stats-cat-filter');
+  var html = '<button onclick="setStatsCatFilter(null)" class="stats-cat-btn px-2.5 py-1 rounded-full text-xs font-medium transition-colors ' +
+    (statsCatFilter === null ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200') + '">Alle</button>';
+  CATEGORIES.forEach(function(cat) {
+    var c = CAT_COLORS[cat];
+    var active = statsCatFilter === cat;
+    var cls = active
+      ? c.bg + ' ' + c.text + ' ring-1 ring-offset-1 ' + c.border.replace('border-','ring-')
+      : 'bg-gray-100 text-gray-500 hover:bg-gray-200';
+    html += '<button onclick="setStatsCatFilter(\'' + cat + '\')" class="stats-cat-btn px-2.5 py-1 rounded-full text-xs font-medium transition-colors ' + cls + '">' + cat + '</button>';
+  });
+  bar.innerHTML = html;
+}
+
+function setStatsCatFilter(cat) {
+  statsCatFilter = statsCatFilter === cat ? null : cat;
+  renderStatsCatFilter();
+  renderStatsList();
+}
+
+function renderStats() {
+  var seen = QUESTIONS.filter(function(q) { return stats[q.id] && stats[q.id].attempts > 0; });
+  var totalAttempts = 0, totalCorrect = 0;
+  Object.keys(stats).forEach(function(k) {
+    totalAttempts += stats[k].attempts;
+    totalCorrect += stats[k].correct;
+  });
+  var globalPct = totalAttempts ? Math.round(totalCorrect / totalAttempts * 100) : 0;
+  var pctColor = globalPct >= 70 ? 'green' : 'yellow';
+
+  document.getElementById('stat-summary').innerHTML =
+    '<div class="bg-blue-50 rounded-xl p-3 text-center">' +
+      '<div class="text-2xl font-bold text-blue-700">' + seen.length + '/' + QUESTIONS.length + '</div>' +
+      '<div class="text-xs text-blue-600 mt-0.5">Gezien</div>' +
+    '</div>' +
+    '<div class="bg-' + pctColor + '-50 rounded-xl p-3 text-center">' +
+      '<div class="text-2xl font-bold text-' + pctColor + '-700">' + globalPct + '%</div>' +
+      '<div class="text-xs text-' + pctColor + '-600 mt-0.5">Correct</div>' +
+    '</div>' +
+    '<div class="bg-gray-50 rounded-xl p-3 text-center">' +
+      '<div class="text-2xl font-bold text-gray-700">' + totalAttempts + '</div>' +
+      '<div class="text-xs text-gray-500 mt-0.5">Pogingen</div>' +
+    '</div>';
+
+  // Category chart
+  renderCatChart();
+  renderStatsCatFilter();
+  renderStatsList();
+}
+
+function renderCatChart() {
+  var html = '<h3 class="text-sm font-semibold text-gray-700 mb-3">Score per categorie</h3>';
+  html += '<div class="space-y-2">';
+
+  CATEGORIES.forEach(function(cat) {
+    var catQs = QUESTIONS.filter(function(q) { return q.cat === cat; });
+    var attempts = 0, correct = 0, seen = 0;
+    catQs.forEach(function(q) {
+      var s = stats[q.id];
+      if (s && s.attempts > 0) {
+        attempts += s.attempts;
+        correct += s.correct;
+        seen++;
+      }
+    });
+    var pct = attempts > 0 ? Math.round(correct / attempts * 100) : 0;
+    var barColor = attempts === 0 ? 'bg-gray-200' : (CAT_BAR_COLORS[cat] || 'bg-gray-400');
+    var cc = CAT_COLORS[cat] || {};
+
+    html += '<div class="flex items-center gap-2">' +
+      '<div class="w-36 text-xs truncate ' + (cc.text || 'text-gray-600') + ' font-medium">' + cat + '</div>' +
+      '<div class="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">' +
+        '<div class="' + barColor + ' h-2.5 rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
+      '</div>' +
+      '<div class="w-20 text-right text-xs text-gray-500">' +
+        (attempts > 0 ? pct + '% <span class="text-gray-400">(' + seen + '/' + catQs.length + ')</span>' : '<span class="text-gray-300">\u2014</span>') +
+      '</div>' +
+    '</div>';
+  });
+
+  html += '</div>';
+  document.getElementById('cat-chart').innerHTML = html;
+}
+
+function renderStatsList() {
+  var list = document.getElementById('stats-list');
+  var filtered;
+
+  if (statsFilter === 'wrong') {
+    filtered = QUESTIONS.filter(function(q) {
+      var s = stats[q.id]; return s && s.attempts > 0 && s.correct < s.attempts;
+    });
+  } else if (statsFilter === 'correct') {
+    filtered = QUESTIONS.filter(function(q) {
+      var s = stats[q.id]; return s && s.attempts > 0 && s.correct === s.attempts;
+    });
+  } else if (statsFilter === 'unseen') {
+    filtered = QUESTIONS.filter(function(q) { return !stats[q.id] || stats[q.id].attempts === 0; });
+  } else {
+    filtered = QUESTIONS.slice();
+  }
+
+  // Apply category filter
+  if (statsCatFilter) {
+    filtered = filtered.filter(function(q) { return q.cat === statsCatFilter; });
+  }
+
+  // Sort by error rate desc
+  filtered.sort(function(a, b) {
+    var sa = stats[a.id], sb = stats[b.id];
+    var ra = sa && sa.attempts ? (sa.attempts - sa.correct) / sa.attempts : 0.5;
+    var rb = sb && sb.attempts ? (sb.attempts - sb.correct) / sb.attempts : 0.5;
+    return rb - ra;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Geen vragen in deze categorie.</p>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(function(q) {
+    var s = stats[q.id];
+    var attempts = s ? s.attempts : 0;
+    var correct = s ? s.correct : 0;
+    var pct = attempts ? Math.round(correct / attempts * 100) : null;
+    var barColor = pct === null ? 'bg-gray-200' : pct >= 80 ? 'bg-green-400' : pct >= 50 ? 'bg-yellow-400' : 'bg-red-400';
+    var qText = q.q.length > 100 ? q.q.slice(0, 100) + '\u2026' : q.q;
+    var cc = CAT_COLORS[q.cat] || { bg: 'bg-gray-50', text: 'text-gray-600' };
+
+    var html = '<div class="border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors">' +
+      '<div class="flex items-start justify-between gap-3">' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-center gap-1.5 mb-0.5">' +
+            '<span class="text-xs text-gray-400">' + escapeHtml(q.exam) + ' \u2022 V' + q.nr + '</span>' +
+            '<span class="' + cc.bg + ' ' + cc.text + ' text-[10px] font-medium px-1.5 py-0.5 rounded-full">' + q.cat + '</span>' +
+          '</div>' +
+          '<p class="text-sm text-gray-800 leading-snug">' + escapeHtml(qText) + '</p>' +
+        '</div>' +
+        '<div class="text-right flex-shrink-0">';
+
+    if (pct !== null) {
+      var pctClass = pct >= 70 ? 'text-green-600' : 'text-red-500';
+      html += '<span class="text-sm font-bold ' + pctClass + '">' + pct + '%</span>' +
+              '<div class="text-xs text-gray-400">' + correct + '/' + attempts + '</div>';
+    } else {
+      html += '<span class="text-xs text-gray-400">Niet gezien</span>';
+    }
+
+    html += '</div></div>';
+
+    if (attempts > 0) {
+      html += '<div class="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">' +
+              '<div class="' + barColor + ' h-1 rounded-full" style="width:' + pct + '%"></div></div>';
+    }
+
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+// ── Exam Mode ───────────────────────────────────────────────────────
+var examActive = false;
+var examQuestions = [];
+var examIndex = 0;
+var examAnswers = [];
+var examAnswered = false;
+
+function selectExamQuestions() {
+  var catQuestions = {};
+  CATEGORIES.forEach(function(cat) {
+    catQuestions[cat] = QUESTIONS.filter(function(q) { return q.cat === cat; });
+  });
+
+  var total = QUESTIONS.length;
+  var target = 32;
+  var allocation = {};
+  var remainders = [];
+  var allocated = 0;
+
+  CATEGORIES.forEach(function(cat) {
+    var count = catQuestions[cat].length;
+    var exact = count / total * target;
+    var floor = Math.max(1, Math.floor(exact));
+    allocation[cat] = floor;
+    allocated += floor;
+    remainders.push({ cat: cat, remainder: exact - floor, count: count });
+  });
+
+  // If we over-allocated (due to min 1), reduce from smallest remainders
+  remainders.sort(function(a, b) { return a.remainder - b.remainder; });
+  while (allocated > target) {
+    for (var i = 0; i < remainders.length && allocated > target; i++) {
+      if (allocation[remainders[i].cat] > 1) {
+        allocation[remainders[i].cat]--;
+        allocated--;
+      }
+    }
+  }
+
+  // Distribute remaining slots to largest remainders
+  remainders.sort(function(a, b) { return b.remainder - a.remainder; });
+  for (var i = 0; i < remainders.length && allocated < target; i++) {
+    if (allocation[remainders[i].cat] < remainders[i].count) {
+      allocation[remainders[i].cat]++;
+      allocated++;
+    }
+  }
+
+  // Select random questions from each category (Fisher-Yates)
+  var selected = [];
+  CATEGORIES.forEach(function(cat) {
+    var pool = catQuestions[cat].slice();
+    for (var i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    selected = selected.concat(pool.slice(0, allocation[cat]));
+  });
+
+  // Shuffle final selection
+  for (var i = selected.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = selected[i]; selected[i] = selected[j]; selected[j] = tmp;
+  }
+
+  return selected;
+}
+
+function renderExamStart() {
+  examActive = false;
+  var content = document.getElementById('exam-mode-content');
+  content.innerHTML =
+    '<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">' +
+      '<div class="text-5xl mb-4">📋</div>' +
+      '<h2 class="text-2xl font-bold text-gray-900 mb-2">DHV Examen Simulatie</h2>' +
+      '<p class="text-gray-500 mb-6">32 vragen, verspreid over alle categorieën</p>' +
+      '<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left text-sm">' +
+        '<h3 class="font-semibold text-amber-800 mb-2">📊 Scoring met giscorrectie</h3>' +
+        '<ul class="space-y-1 text-amber-700">' +
+          '<li>✅ Correct antwoord: <strong>+1 punt</strong></li>' +
+          '<li>❌ Fout antwoord: <strong>−⅓ punt</strong></li>' +
+          '<li>⏭️ Overgeslagen: <strong>0 punten</strong></li>' +
+        '</ul>' +
+        '<p class="mt-2 text-amber-600 text-xs">Tip: Weet je het antwoord niet zeker? Overslaan is soms beter dan gokken.</p>' +
+      '</div>' +
+      '<button onclick="startExam()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors text-lg">' +
+        '🚀 Start Examen' +
+      '</button>' +
+    '</div>';
+}
+
+function startExam() {
+  examActive = true;
+  examQuestions = selectExamQuestions();
+  examIndex = 0;
+  examAnswers = [];
+  renderExamQuestion();
+}
+
+function renderExamQuestion() {
+  if (examIndex >= examQuestions.length) {
+    showExamResults();
+    return;
+  }
+
+  examAnswered = false;
+  var q = examQuestions[examIndex];
+  var content = document.getElementById('exam-mode-content');
+
+  var pct = Math.round(examIndex / examQuestions.length * 100);
+  var correctCount = examAnswers.filter(function(a) { return a.isCorrect; }).length;
+  var wrongCount = examAnswers.filter(function(a) { return !a.skipped && !a.isCorrect; }).length;
+
+  var multi = q.correct.length > 1;
+  var cc = CAT_COLORS[q.cat] || { bg: 'bg-gray-50', text: 'text-gray-700' };
+
+  var optionsHtml = '';
+  ['a','b','c','d'].forEach(function(letter) {
+    if (!q[letter]) return;
+    var label = letter.toUpperCase();
+    var radius = multi ? 'md' : 'full';
+    var checkSvg = multi
+      ? '<svg class="hidden w-3 h-3 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5l-1 1 4 4 6-6z"/></svg>'
+      : '';
+    optionsHtml +=
+      '<div class="exam-option-btn option-btn flex items-start gap-3 p-3.5 rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 select-none" data-letter="' + label + '" onclick="toggleExamOption(this,' + multi + ')">' +
+        '<div class="mt-0.5 w-5 h-5 rounded-' + radius + ' border-2 border-gray-300 flex-shrink-0 flex items-center justify-center exam-option-indicator" data-letter="' + label + '">' +
+          checkSvg +
+        '</div>' +
+        '<div>' +
+          '<span class="font-semibold text-sm text-gray-500 mr-1">' + label + '.</span>' +
+          '<span class="text-sm text-gray-800">' + escapeHtml(q[letter]) + '</span>' +
+        '</div>' +
+      '</div>';
+  });
+
+  content.innerHTML =
+    '<div class="flex items-center justify-between mb-4 text-sm text-gray-500">' +
+      '<span>Vraag ' + (examIndex + 1) + ' / ' + examQuestions.length + '</span>' +
+      '<span class="font-medium"><span class="text-green-600">' + correctCount + ' ✓</span> · <span class="text-red-500">' + wrongCount + ' ✗</span></span>' +
+    '</div>' +
+    '<div class="w-full bg-gray-200 rounded-full h-1.5 mb-6">' +
+      '<div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
+    '</div>' +
+    '<div id="exam-question-card" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 fade-in">' +
+      '<div class="flex items-center gap-2 mb-4 flex-wrap">' +
+        '<span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">Examen</span>' +
+        '<span class="text-xs font-semibold px-2.5 py-1 rounded-full ' + cc.bg + ' ' + cc.text + '">' + q.cat + '</span>' +
+      '</div>' +
+      '<p class="text-base font-semibold leading-relaxed mb-5 text-gray-900">' + escapeHtml(q.q) + '</p>' +
+      '<p class="text-xs text-gray-400 mb-3">' +
+        (multi ? '\u26A0\uFE0F Meerdere antwoorden mogelijk \u2014 selecteer alles wat van toepassing is.' : 'Selecteer het juiste antwoord.') +
+      '</p>' +
+      '<div id="exam-options-container" class="space-y-2.5">' + optionsHtml + '</div>' +
+      '<div id="exam-feedback" class="hidden mt-5 p-4 rounded-xl text-sm leading-relaxed"></div>' +
+      '<div class="mt-6 flex gap-3">' +
+        '<button id="exam-btn-submit" onclick="submitExamAnswer()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">Controleer</button>' +
+        '<button id="exam-btn-skip" onclick="skipExamQuestion()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition-colors text-sm">Overslaan</button>' +
+        '<button id="exam-btn-next" onclick="nextExamQuestion()" class="hidden flex-1 bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">Volgende vraag \u2192</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function toggleExamOption(div, multi) {
+  if (examAnswered) return;
+  if (!multi) {
+    document.querySelectorAll('#exam-options-container .exam-option-btn').forEach(function(d) {
+      d.classList.remove('border-blue-500', 'bg-blue-50');
+      d.classList.add('border-gray-200');
+      var ind = d.querySelector('.exam-option-indicator');
+      ind.classList.remove('border-blue-500', 'bg-blue-500');
+    });
+  }
+  var isSelected = div.classList.contains('border-blue-500');
+  if (isSelected && multi) {
+    div.classList.remove('border-blue-500', 'bg-blue-50');
+    div.classList.add('border-gray-200');
+    var ind = div.querySelector('.exam-option-indicator');
+    ind.classList.remove('border-blue-500', 'bg-blue-500');
+    var chk = ind.querySelector('svg');
+    if (chk) chk.classList.add('hidden');
+  } else {
+    div.classList.add('border-blue-500', 'bg-blue-50');
+    div.classList.remove('border-gray-200');
+    var ind2 = div.querySelector('.exam-option-indicator');
+    ind2.classList.add('border-blue-500', 'bg-blue-500');
+    var chk2 = ind2.querySelector('svg');
+    if (chk2) chk2.classList.remove('hidden');
+  }
+}
+
+function submitExamAnswer() {
+  var selected = [];
+  document.querySelectorAll('#exam-options-container .exam-option-btn').forEach(function(d) {
+    if (d.classList.contains('border-blue-500')) selected.push(d.dataset.letter);
+  });
+  if (selected.length === 0) {
+    var card = document.getElementById('exam-question-card');
+    card.classList.add('shake');
+    setTimeout(function() { card.classList.remove('shake'); }, 500);
+    return;
+  }
+
+  examAnswered = true;
+  var q = examQuestions[examIndex];
+  var correct = q.correct.slice().sort();
+  var isCorrect = JSON.stringify(selected.slice().sort()) === JSON.stringify(correct);
+
+  examAnswers.push({ selected: selected, isCorrect: isCorrect, skipped: false, question: q });
+
+  // Also update practice stats
+  if (!stats[q.id]) stats[q.id] = { attempts: 0, correct: 0 };
+  stats[q.id].attempts++;
+  if (isCorrect) stats[q.id].correct++;
+  saveStats(stats);
+
+  // Reveal options
+  document.querySelectorAll('#exam-options-container .exam-option-btn').forEach(function(d) {
+    d.classList.add('revealed');
+    d.classList.remove('hover:border-blue-300', 'hover:bg-blue-50/40');
+    var letter = d.dataset.letter;
+    var isCorr = correct.indexOf(letter) !== -1;
+    var wasSel = selected.indexOf(letter) !== -1;
+    d.classList.remove('border-blue-500', 'bg-blue-50', 'border-gray-200');
+    var ind = d.querySelector('.exam-option-indicator');
+    ind.classList.remove('border-blue-500', 'bg-blue-500', 'border-gray-300');
+    var chk = ind.querySelector('svg');
+    if (isCorr) {
+      d.classList.add('border-green-500', 'bg-green-50');
+      ind.classList.add('border-green-500', 'bg-green-500');
+      if (chk) chk.classList.remove('hidden');
+    } else if (wasSel) {
+      d.classList.add('border-red-400', 'bg-red-50');
+      ind.classList.add('border-red-400', 'bg-red-400');
+      if (chk) chk.classList.remove('hidden');
+    } else {
+      d.classList.add('border-gray-200', 'opacity-60');
+    }
+  });
+
+  // Feedback
+  var fb = document.getElementById('exam-feedback');
+  fb.classList.remove('hidden');
+  if (isCorrect) {
+    fb.className = 'mt-5 p-4 rounded-xl text-sm leading-relaxed bg-green-50 border border-green-200 text-green-800';
+    fb.innerHTML = '<span class="font-semibold">\u2705 Correct!</span> Goed gedaan.';
+  } else {
+    var correctHtml = correct.map(function(l) {
+      return '<strong>' + l + '</strong>: ' + escapeHtml(q[l.toLowerCase()]);
+    }).join('<br>');
+    fb.className = 'mt-5 p-4 rounded-xl text-sm leading-relaxed bg-red-50 border border-red-200 text-red-800';
+    fb.innerHTML = '<span class="font-semibold">\u274C Fout.</span> Het juiste antwoord is:<br>' + correctHtml;
+  }
+
+  document.getElementById('exam-btn-submit').classList.add('hidden');
+  document.getElementById('exam-btn-skip').classList.add('hidden');
+  document.getElementById('exam-btn-next').classList.remove('hidden');
+  document.getElementById('exam-btn-next').focus();
+}
+
+function skipExamQuestion() {
+  var q = examQuestions[examIndex];
+  examAnswers.push({ selected: [], isCorrect: false, skipped: true, question: q });
+  examAnswered = false;
+  examIndex++;
+  renderExamQuestion();
+}
+
+function nextExamQuestion() {
+  examAnswered = false;
+  examIndex++;
+  renderExamQuestion();
+}
+
+function showExamResults() {
+  examActive = false;
+  var totalQ = examQuestions.length;
+  var correctCount = 0, wrongCount = 0, skippedCount = 0;
+
+  examAnswers.forEach(function(a) {
+    if (a.skipped) skippedCount++;
+    else if (a.isCorrect) correctCount++;
+    else wrongCount++;
+  });
+
+  var penalty = wrongCount / 3;
+  var correctedScore = correctCount - penalty;
+  if (correctedScore < 0) correctedScore = 0;
+  var correctedPct = Math.round(correctedScore / totalQ * 1000) / 10;
+
+  // Category breakdown
+  var catBreakdown = {};
+  examAnswers.forEach(function(a) {
+    var cat = a.question.cat;
+    if (!catBreakdown[cat]) catBreakdown[cat] = { correct: 0, wrong: 0, skipped: 0, total: 0 };
+    catBreakdown[cat].total++;
+    if (a.skipped) catBreakdown[cat].skipped++;
+    else if (a.isCorrect) catBreakdown[cat].correct++;
+    else catBreakdown[cat].wrong++;
+  });
+
+  var catHtml = '';
+  CATEGORIES.forEach(function(cat) {
+    var b = catBreakdown[cat];
+    if (!b) return;
+    var cc = CAT_COLORS[cat] || {};
+    var barColor = CAT_BAR_COLORS[cat] || 'bg-gray-400';
+    var pct = b.total > 0 ? Math.round(b.correct / b.total * 100) : 0;
+    catHtml +=
+      '<div class="flex items-center gap-2">' +
+        '<div class="w-36 text-xs truncate ' + (cc.text || 'text-gray-600') + ' font-medium">' + cat + '</div>' +
+        '<div class="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">' +
+          '<div class="' + barColor + ' h-2.5 rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="w-16 text-right text-xs text-gray-500">' + b.correct + '/' + b.total + '</div>' +
+      '</div>';
+  });
+
+  // Question review list
+  var reviewHtml = examAnswers.map(function(a, i) {
+    var q = a.question;
+    var cc = CAT_COLORS[q.cat] || { bg: 'bg-gray-50', text: 'text-gray-600' };
+    var icon = a.skipped ? '\u23ED\uFE0F' : a.isCorrect ? '\u2705' : '\u274C';
+    var borderColor = a.skipped ? 'border-gray-200' : a.isCorrect ? 'border-green-200' : 'border-red-200';
+    var bgColor = a.skipped ? '' : a.isCorrect ? 'bg-green-50/50' : 'bg-red-50/50';
+    var detail = '';
+    if (!a.skipped) {
+      detail = '<div class="text-xs text-gray-500 mt-1">Jouw antwoord: ' + a.selected.join(', ') +
+        (a.isCorrect ? '' : ' \u2014 Correct: ' + q.correct.join(', ')) + '</div>';
+    } else {
+      detail = '<div class="text-xs text-gray-400 mt-1">Overgeslagen \u2014 Correct: ' + q.correct.join(', ') + '</div>';
+    }
+    return '<div class="border ' + borderColor + ' ' + bgColor + ' rounded-xl p-3">' +
+      '<div class="flex items-start gap-2">' +
+        '<span class="text-sm mt-0.5">' + icon + '</span>' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-center gap-1.5 mb-0.5">' +
+            '<span class="text-xs text-gray-400">V' + (i + 1) + '</span>' +
+            '<span class="' + cc.bg + ' ' + cc.text + ' text-[10px] font-medium px-1.5 py-0.5 rounded-full">' + q.cat + '</span>' +
+          '</div>' +
+          '<p class="text-sm text-gray-800 leading-snug">' + escapeHtml(q.q.length > 120 ? q.q.slice(0, 120) + '\u2026' : q.q) + '</p>' +
+          detail +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var content = document.getElementById('exam-mode-content');
+  content.innerHTML =
+    '<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center mb-4">' +
+      '<div class="text-5xl mb-3">📋</div>' +
+      '<h2 class="text-2xl font-bold text-gray-900 mb-1">Examen Resultaat</h2>' +
+      '<p class="text-gray-500 mb-6">DHV Examen Simulatie</p>' +
+
+      '<div class="grid grid-cols-3 gap-3 mb-6">' +
+        '<div class="bg-green-50 rounded-xl p-3 text-center">' +
+          '<div class="text-2xl font-bold text-green-700">' + correctCount + '</div>' +
+          '<div class="text-xs text-green-600 mt-0.5">Correct</div>' +
+        '</div>' +
+        '<div class="bg-red-50 rounded-xl p-3 text-center">' +
+          '<div class="text-2xl font-bold text-red-700">' + wrongCount + '</div>' +
+          '<div class="text-xs text-red-600 mt-0.5">Fout</div>' +
+        '</div>' +
+        '<div class="bg-gray-50 rounded-xl p-3 text-center">' +
+          '<div class="text-2xl font-bold text-gray-700">' + skippedCount + '</div>' +
+          '<div class="text-xs text-gray-500 mt-0.5">Overgeslagen</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="bg-gray-50 rounded-xl p-5 mb-6 text-left">' +
+        '<h3 class="font-semibold text-gray-700 mb-3 text-sm">Berekening met giscorrectie</h3>' +
+        '<div class="space-y-1.5 text-sm">' +
+          '<div class="flex justify-between"><span class="text-gray-600">Correct</span><span class="font-medium text-green-700">+' + correctCount + '</span></div>' +
+          '<div class="flex justify-between"><span class="text-gray-600">Giscorrectie (' + wrongCount + ' fout \u00D7 \u2212\u2153)</span><span class="font-medium text-red-600">\u2212' + (Math.round(penalty * 10) / 10) + '</span></div>' +
+          '<div class="border-t border-gray-200 pt-1.5 flex justify-between"><span class="font-semibold text-gray-800">Eindscore</span><span class="font-bold text-gray-900">' + (Math.round(correctedScore * 10) / 10) + ' / ' + totalQ + ' (' + correctedPct + '%)</span></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="mb-6 text-left">' +
+        '<h3 class="text-sm font-semibold text-gray-700 mb-3">Score per categorie</h3>' +
+        '<div class="space-y-2">' + catHtml + '</div>' +
+      '</div>' +
+
+      '<div class="flex gap-3">' +
+        '<button onclick="startExam()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">Opnieuw</button>' +
+        '<button onclick="showView(\'practice\')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition-colors">Terug naar oefenen</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">' +
+      '<h3 class="font-bold text-sm text-gray-700 mb-3">Overzicht vragen</h3>' +
+      '<div class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">' + reviewHtml + '</div>' +
+    '</div>';
+}
+
+function clearStats() {
+  if (confirm('Weet je zeker dat je alle statistieken wilt wissen?')) {
+    stats = {};
+    saveStats(stats);
+    sessionCount = 0;
+    sessionCorrect = 0;
+    updateSessionBar();
+    renderStats();
+  }
+}
+
+// Keyboard support
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (currentView === 'exam-mode' && examActive) {
+      if (!examAnswered) submitExamAnswer();
+      else nextExamQuestion();
+    } else if (currentView === 'practice') {
+      if (!answered) submitAnswer();
+      else nextQuestion();
+    }
+  }
+});
+
+// Init
+showView('practice');
+updateSessionBar();
+renderCatFilterBar();
+renderQuestion(pickQuestion());
+</script></body></html>
